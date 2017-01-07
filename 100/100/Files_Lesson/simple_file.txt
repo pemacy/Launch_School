@@ -1,0 +1,1 @@
+Writing to files in Ruby is easyAnother line so the line number index thing will work
