@@ -1,0 +1,7 @@
+welcome: "Welcome to the loan calculator!"
+again: "Would you like to calculate another loan? (Y to do another loan)"
+input_amt: "Enter the loan amount"
+input_years: "Enter the number of years the loan will be:"
+input_months: "Now enter the months:"
+input_apr: "Enter the APR of the loan (XX.XX)"
+bad_num_value: "That was not a correct value, please try again"
