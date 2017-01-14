@@ -7,12 +7,28 @@ require 'yaml'
 MSG = YAML.load_file('loan_calc.yml')
 
 def prompt(message)
-  puts("=-=> #{message}")
+  puts("==> #{message}")
 end
 
-# VALIDATE input data
+#  ======= VALIDATE input data =======
+def validate_months_or_years(num)
+  if num.positive? &&
+
+def validate_loan_amount_with_regex(num)
+  /^(\$)?[0-9]{1,3}(?:,?[0-9]{3})*(?:\.[0-9]{2})?$/ =~ num
+  # (/$)? - 1st capturing group entered 0 or 1 times, dollar sign
+  # [0-9]{1,3} - a single digit repeated 1-3 times
+  # (?: ) - non-capturing group
+    # ,? - comma is optional
+    # [0-9]{1,3} - a single digit repeated 1-3 times
+  # * - non-capturing group can be repeated zero to unlimited times
+  # (?: ) - non-capturing group
+    #\.[0-9]{2} - decimal followed by 2 digits
+  # ? - non-capturing group can be given 0 to 1 times
+end
+
 def valid_int?(num)
-  /^\d+$/.match(num)
+  /^(\$))\d+$/.match(num)
 end
 
 def valid_float?(num)

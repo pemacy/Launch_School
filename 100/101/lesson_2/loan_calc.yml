@@ -1,4 +1,5 @@
-welcome: "Welcome to the loan calculator!"
+welcome: "Welcome to the loan calculator!  Enter your name:"
+bad_name: "Please enter your name"
 again: "Would you like to calculate another loan? (Y to do another loan)"
 input_amt: "Enter the loan amount"
 input_years: "Enter the number of years the loan will be:"

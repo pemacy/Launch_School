@@ -6,23 +6,23 @@
 
 VALID_CHOICES = %w(rock paper scissors)
 
+WIN_COMBO = {
+  'rock' => 'scissors',
+  'scissors' => 'paper',
+  'paper' => 'rock'
+}
+
 def prompt(message)
   Kernel.puts("=> #{message}")
 end
 
-def win?(first, second)
-  (first == 'rock' && second == 'scissors') ||
-    (first == 'paper' && second == 'rock') ||
-    (first == 'scissors' && second == 'paper')
-end
-
 def display_results(player, computer)
-  if win?(player, computer)
+  if WIN_COMBO[player] == computer
     prompt("You won!")
-  elsif player == computer
-    prompt("It's a tie!")
+  elsif WIN_COMBO[computer] == player
+    prompt("Computer won")
   else
-    prompt("Computer won!")
+    prompt("Tie Game!")
   end
 end
 
