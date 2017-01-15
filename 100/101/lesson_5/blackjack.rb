@@ -106,11 +106,12 @@ def player_hit(deck, hand, sum_of_hand)
     break if gets.chomp.downcase != 'h'
     add_card(deck, hand)
     display_hand(hand)
-    system 'clear'
     sum_of_hand = sum_cards_in_hand(hand)
   end
-  if sum_of_hand > 21
-    puts "\nPlayer BUST!" if sum_of_hand > BUST_VALUE
+  if sum_of_hand > BUST_VALUE
+    system 'clear'
+    puts "Player BUST!\n"
+    display_hand(hand)
     sleep(2)
     return false
   end
@@ -125,12 +126,12 @@ def dealer_hit(deck, hand, sum_of_hand)
     add_card(deck, hand)
     sleep(1)
     display_hand(nil, hand)
-    system 'clear'
     sum_of_hand = sum_cards_in_hand(hand)
     sleep(1)
   end
-  if sum_of_hand > 21
-    puts "\nDealer BUST!" if sum_of_hand > BUST_VALUE
+  if sum_of_hand > BUST_VALUE
+    system 'clear'
+    puts "Dealer BUST!\n"
     display_hand(nil, hand, true)
     sleep(2)
     return false
@@ -141,32 +142,35 @@ end
 # ========== DISPLAY WINNER ==========
 def show_winner(player, dealer, player_hand, dealer_hand, score)
   system 'clear'
+  puts player > dealer ? "You won!\n" : "Dealer won\n"
   display_hand(player_hand, dealer_hand, true)
-  puts player > dealer ? "\n You won this hand!" : "\nDealer won"
+
   player > dealer ? score[0] += 1 : score[1] += 1
+  sleep(5)
 end
 
 # ========== EACH HAND LOOP ==========
 def playing_a_hand(deck, player_hand, dealer_hand, score)
-loop do
-  display_hand(player_hand, dealer_hand, false)
-  player_sum_of_hand = sum_cards_in_hand(player_hand)
-  dealer_sum_of_hand = sum_cards_in_hand(dealer_hand)
-  # ========== PLAYER HIT LOOP, EXITS IF BUST ==========
-  player_turn = player_hit(deck, player_hand, player_sum_of_hand)
-  unless player_turn
-    score[1] += 1
+  loop do
+    display_hand(player_hand, dealer_hand, false)
+    player_sum_of_hand = sum_cards_in_hand(player_hand)
+    dealer_sum_of_hand = sum_cards_in_hand(dealer_hand)
+    # ========== PLAYER HIT LOOP, EXITS IF BUST ==========
+    player_turn = player_hit(deck, player_hand, player_sum_of_hand)
+    unless player_turn
+      score[1] += 1
+      break
+    end
+    # ========== DEALER HIT LOOP, EXITS IF BUST ==========
+    dealer_turn = dealer_sum_of_hand
+    dealer_turn = dealer_hit(deck, dealer_hand, dealer_sum_of_hand) if player_turn
+    unless dealer_turn
+      score[0] += 1
+      break
+    end
+    # ========== DETERMINE WINNER ==========
+    show_winner(player_turn, dealer_turn, player_hand, dealer_hand, score)
     break
-  end
-  # ========== DEALER HIT LOOP, EXITS IF BUST ==========
-  dealer_turn = dealer_hit(deck, dealer_hand, dealer_sum_of_hand, player_sum_of_hand) if player_turn
-  unless dealer_turn
-    score[0] += 1
-    break
-  end
-  # ========== DETERMINE WINNER ==========
-  show_winner(player_turn, dealer_turn, player_hand, dealer_hand, score)
-  break
   end
 end
 
@@ -179,34 +183,18 @@ loop do
 
   # ========== MAIN GAME LOOP, FIRST TO 5 WINS ==========
   while score.count(5) < 1
-    puts ""
+    system 'clear'
     puts "------ New Card Deal ------"
     puts "Player: #{score[0]}   .....   Dealer: #{score[1]}"
     player_hand = initial_deal(deck)
     dealer_hand = initial_deal(deck)
 
     # ========== EACH HAND LOOP ==========
-    loop do
-      display_hand(player_hand, dealer_hand, false)
-      player_sum_of_hand = sum_cards_in_hand(player_hand)
-      dealer_sum_of_hand = sum_cards_in_hand(dealer_hand)
-      # ========== PLAYER HIT LOOP, EXITS IF BUST ==========
-      player_turn = player_hit(deck, player_hand, player_sum_of_hand)
-      unless player_turn
-        score[1] += 1
-        break
-      end
-      # ========== DEALER HIT LOOP, EXITS IF BUST ==========
-      dealer_turn = dealer_hit(deck, dealer_hand, dealer_sum_of_hand, player_sum_of_hand) if player_turn
-      unless dealer_turn
-        score[0] += 1
-        break
-      end
-      # ========== DETERMINE WINNER ==========
-      show_winner(player_turn, dealer_turn, player_hand, dealer_hand, score)
-      break
-    end
+    playing_a_hand(deck, player_hand, dealer_hand, score)
+
   end
+  puts "\n\n"
+  puts score[0] > score[1] ? "You won that round" : "Dealer won that round"
   puts "Final score: Player: #{score[0]}   .....   Dealer: #{score[1]}"
   puts "\nPlay again?:"
   break unless gets.chomp.downcase.start_with?('y')
