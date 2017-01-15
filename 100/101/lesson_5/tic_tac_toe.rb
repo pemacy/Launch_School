@@ -3,6 +3,8 @@ require 'pry'
 INITIAL_MARKER = ' '
 PLAYER_MARKER = 'X'
 COMPUTER_MARKER = 'O'
+VALID_SELECTIONS = ['a1', 'a2', 'a3', 'b1', 'b2', 'b3', 'c1', 'c2', 'c3']
+WINNING_COMBINATIONS = ['012', '345', '678', '036', '147', '258', '048', '246']
 
 def display_board(board)
   system 'clear'
@@ -23,26 +25,29 @@ def display_board(board)
   puts ""
 end
 
-def user_input(valid_selections, board)
+def user_input(board)
   loop do
     print "Enter location: "
     user_input = gets.chomp.downcase
-    if verify_selection(user_input, valid_selections) && board[valid_selections.index(user_input)] == INITIAL_MARKER
-      return board[valid_selections.index(user_input)] = PLAYER_MARKER
+    if verify_selection(user_input) &&
+       board[VALID_SELECTIONS.index(user_input)] == INITIAL_MARKER
+      return board[VALID_SELECTIONS.index(user_input)] = PLAYER_MARKER
     else
       puts "Invalid entry, try again"
     end
   end
 end
 
-def computer_input(board, winning_combinations)
-  p board
-  defend_spaces = threat_spaces_for_ai(winning_combinations, board)
-
-  unless board_full?(board)
+def computer_input(board, score)
+  defend = ai_defence_move(board)
+  if board_full?(board)
+    false
+  elsif winner?(board, score)
+    false
+  else
     loop do
-      if defence_for_ai(defend_spaces)
-        board[defence_for_ai(defend_spaces)] = COMPUTER_MARKER
+      if defend
+        board[defend] = COMPUTER_MARKER
         break
       else
         computer_input = rand(0..8)
@@ -55,8 +60,8 @@ def computer_input(board, winning_combinations)
   end
 end
 
-def verify_selection(user_input, valid_selections)
-  valid_selections.include?(user_input)
+def verify_selection(user_input)
+  VALID_SELECTIONS.include?(user_input)
 end
 
 def user_selection(board)
@@ -75,110 +80,120 @@ def computer_selection(board)
   computer_selections
 end
 
-def check_winner(board, winning_combinations)
-  user_selections = user_selection(board)
-  computer_selections = computer_selection(board)
-  if user_win?(user_selections, winning_combinations)
-    'You Won!'
-  elsif computer_win?(computer_selections, winning_combinations)
-    'Computer Won!'
-  elsif board_full?(board)
-    'Tie Game!'
-  else
-    false
-  end
-end
-
-def user_win?(user_selections, winning_combinations)
-  win = false
-  winning_combinations.each do |el|
-    win = true if (el.chars & user_selections).size == 3
-  end
-  win
-end
-
-def computer_win?(computer_selections, winning_combinations)
-  win = false
-  winning_combinations.each do |el|
-    win = true if (el.chars & computer_selections).size == 3
-  end
-  win
-end
-
 def board_full?(board)
   full_board = false
   full_board = true unless board.include?(INITIAL_MARKER)
   full_board
 end
 
-def update_board(user_input, computer_input, valid_selections)
-  user_spot = valid_selections.index(user_input)
-  board[user_spot] = PLAYER_MARKER
-  board[computer_input] = COMPUTER_MARKER
+def board_reset(board)
+  (0..8).to_a.each { |num| board[num] = INITIAL_MARKER }
 end
 
-def board_reset
-  (0..8).to_a.each_with_object([]) { |_, arr| arr << INITIAL_MARKER }
+def score_reset(score)
+  score[0] = 0
+  score[1] = 0
+end
+
+def winner?(board, score)
+  winner = false
+  which_marker = ''
+  WINNING_COMBINATIONS.each do |combo|
+    which_marker = board[combo[0].to_i]
+    square2 = board[combo[1].to_i]
+    square3 = board[combo[2].to_i]
+    if which_marker == square2 && square2 == square3
+      winner = which_marker
+    end
+  end
+  display_winner(winner, score)
+end
+
+def display_winner(winner, score)
+  if winner == PLAYER_MARKER
+    p "You Won!"
+    score[0] += 1
+  elsif winner == COMPUTER_MARKER
+    p "Computer Won!"
+    score[1] += 1
+  else
+    false
+  end
+end
+
+def play_again?(board, score)
+  print "Would you like to play again?:  "
+  play_again = gets.chomp.downcase
+  if play_again.start_with?('y')
+    board_reset(board)
+    score_reset(score)
+    display_board(board)
+    puts "Game to 5! You go first"
+    return true
+  else
+    return false
+  end
 end
 
 # =========== AI Methods =============
-def threat_spaces_for_ai (winning_combinations, board)
-  p board
+def threat_row_for_ai(board)
   defend_spaces = {}
-  winning_combinations.each {|el| defend_spaces[el] = []}
-  winning_combinations.each do |threat|
-    threat_group = false
-    threat.chars.each do |is_X|
-      if board[is_X.to_i] == 'O'
-        defend_spaces[threat] = []
+  WINNING_COMBINATIONS.each { |threat| defend_spaces[threat] = 0 }
+  WINNING_COMBINATIONS.each do |threat|
+    threat.chars.each do |is_x|
+      defend_spaces[threat] += 1 if board[is_x.to_i] == PLAYER_MARKER
+      if board[is_x.to_i] == COMPUTER_MARKER
+        defend_spaces[threat] = 0
         break
-      elsif board[is_X.to_i] == 'X'
-        threat_group = true
-      end
-      if threat_group == true && board[is_X.to_i] == ' '
-        defend_spaces[threat] << is_X.to_i
-
       end
     end
   end
   defend_spaces
 end
 
-def defence_for_ai(defend_spaces)
-  should_ai_defend = false
-  defend_spaces.each do | _ , v |
-    if v.size == 1
-      should_ai_defend = v[0]
-
+def ai_defence_move(board)
+  defence_move = false
+  defend_spaces = threat_row_for_ai(board)
+  defend_spaces.each do |k, v|
+    if v == 2
+      k.chars.each do |threat|
+        defence_move = threat.to_i if board[threat.to_i] == INITIAL_MARKER
+      end
     end
   end
-  should_ai_defend
+  defence_move
 end
 
-
-board = board_reset
-valid_selections = ['a1', 'a2', 'a3', 'b1', 'b2', 'b3', 'c1', 'c2', 'c3']
-winning_combinations = ['012', '345', '678', '036', '147', '258', '048', '246']
+# =========== INITIAL GAME SETUP =============
+board = []
+score = [0,0]
+board_reset(board)
 display_board(board)
+puts "Game to 5!  You go first"
+play_again = true
 
-loop do
-  user_input(valid_selections, board)
-  computer_input(board, winning_combinations)
+while play_again
+  puts "You #{score[0]} ... Computer #{score[1]}"
+  user_input(board)
+  computer_input(board, score)
 
+  display_board(board)
 
-  if check_winner(board, winning_combinations)
-    display_board(board)
-    puts check_winner(board, winning_combinations)
-    print "Would you like to play again?:  "
-    play_again = gets.chomp.downcase
-    if play_again.start_with?('y')
-      board = board_reset
-      display_board(board)
+  winner = winner?(board, score)
+
+  if winner
+    winner
+    if score[0] == 5 || score[1] == 5
+      play_again = play_again?(board, score)
     else
-      break
+      board_reset(board)
+      display_board(board)
     end
-  else
+  elsif board_full?(board)
     display_board(board)
-    puts threat_spaces_for_ai(winning_combinations, board)
+    board_reset(board)
+    puts "Cat's Game"
   end
 end
+
+puts "Thanks for playing!  Good-bye."
