@@ -9,8 +9,8 @@ def no_mutate(array)
   array.last
 end
 
-p "Before mutate method: #{a}"
-p mutate(a)
-p "After mutate method #{a}"
-p no_mutate(a)
-p "After no mutate method #{a}"
+puts "Before mutate method: #{a}"
+mutate(a)
+puts "After mutate method #{a}"
+no_mutate(a)
+puts "After no mutate method #{a}"

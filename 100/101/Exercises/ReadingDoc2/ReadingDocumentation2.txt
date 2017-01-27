@@ -1,0 +1,30 @@
+How would you use String#upcase to create an uppercase version of the string "xyz"?
+Answer: 'xyz'.upcase
+
+2. Assume you have this Array:
+a = %w(a b c d e)
+How would you use Array#insert to insert the numbers 5, 6, and 7 between the elements with values 'c' and 'd'?
+
+a.insert 2, 5, 6, 7
+
+3. Assume you have the following code:
+s = 'abc def ghi,jkl mno pqr,stu vwx yz'
+puts s.split.inspect
+puts s.split(',').inspect
+puts s.split(',', 2).inspect
+What will each of the 3 puts statements print?
+
+  first: ['\abc\', '\def\', \'ghi,jkl\', \'mno\', \'pqr,stu\', \'vwx\', \yz\']]
+  second: [\'abc def ghi\', \'jkl mno pqr\', \'stu vwx yz\']
+  third: [\'abc def ghi\', \'jkl mno pqr,stu vwx yz\']
+
+4. Assume you have the following code:
+require 'date'
+
+puts Date.new
+puts Date.new(2016)
+puts Date.new(2016, 5)
+puts Date.new(2016, 5, 13)
+What will each of the 4 puts statements print?
+
+  first 
