@@ -1,0 +1,11 @@
+desc "Hello thing"
+task :hello do
+  sh "echo hey, i'm in a rakefile"
+end
+
+desc "goodbye task"
+task :bye do
+  puts "It's time to say goodbye prop Joe"
+end
+
+task :default => [:hello, :bye]
