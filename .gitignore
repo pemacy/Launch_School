@@ -1,2 +1,7 @@
-*.txt
-*.docx
+*
+
+!.rb
+!.js
+!.html
+!.css
+

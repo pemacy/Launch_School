@@ -25,3 +25,6 @@ end
 
 num = NumberTester.new(12)
 p num.number_type
+
+num.number      =     5
+p num.number
