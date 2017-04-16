@@ -72,7 +72,7 @@ class TodoList
 
   def to_s
     text = "----- #{title} -----\n"
-    @todos.each { |todo| text << todo.to_s; text << "\n"}
+    each { |todo| text << todo.to_s; text << "\n"}
     text
   end
 
@@ -87,8 +87,8 @@ class TodoList
     self
   end
 
-  def select
-    results = TodoList.new("Selected Items")
+  def select(title = "Selected Items")
+    results = TodoList.new(title)
     each { |todo| results << todo if yield todo}
     results
   end
@@ -105,4 +105,30 @@ list.add(todo1, todo2, todo3)
 list.each{|t| t.done!}
 puts list
 list[1].undone!
-puts list.select{|t| t.done}
+puts list.select{|t| !t.done?}
+puts list.each{|a| puts "hey there"}
+
+
+module First
+end
+
+module Second
+end
+
+module Third
+end
+
+module Fourth
+end
+
+class FirstClass
+  include Third
+  include Fourth
+end
+
+class SecondClass < FirstClass
+  include Second
+  include First
+end
+
+p SecondClass.ancestors
