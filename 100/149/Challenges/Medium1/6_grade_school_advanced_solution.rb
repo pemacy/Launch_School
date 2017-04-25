@@ -7,6 +7,15 @@ School = Class.new do
   method_names.zip(method_bodies).each { |name, body| define_method(name, body) }
 end
 
+# sch = School.new
+# sch.add('Frank', 4)
+# sch.add('Alan', 4)
+# sch.add('AAlbert', 4)
+# sch.add('Tom', 3)
+# sch.add('Sue', 2)
+# p sch.grade(4)
+# p sch.to_h
+
 class School1
   methods = [
               %q(def initialize() @roster = Hash.new([]) end),
@@ -15,6 +24,15 @@ class School1
               %q(def grade(grd) @roster[grd] end)]
   methods.each { |meth| class_eval(meth) }
 end
+
+sch = School1.new
+sch.add('Franklen', 4)
+sch.add('Alan', 4)
+sch.add('AAlbert', 4)
+sch.add('Tom', 3)
+sch.add('Sue', 2)
+p sch.grade(4)
+p sch.to_h
 
 # Re-written:
 
