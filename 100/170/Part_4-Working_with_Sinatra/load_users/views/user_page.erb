@@ -1,0 +1,24 @@
+<% # user_page.erb %>
+
+
+<h2><%= @current_user.to_s.capitalize %></h2>
+<% @users[@current_user].each do |key, values| %>
+  <h4><%= key %></h4>
+  <ul>
+    <% values = values.split if values.class == String %>
+    <%values.each do |v| %>
+      <li><%= v %></li>
+    <% end %>
+  </ul>
+<% end %>
+
+<h3>Other Users</h3>
+<ul>
+  <% @users.each do |user, info| %>
+    <% next if user == @current_user %>
+    <li>
+      <a href = "/<%= user %>"><%= user %></a>
+    </li>
+  <% end %>
+  <li><a href= '/'>Home</a></li>
+</ul>

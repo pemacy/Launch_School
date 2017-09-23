@@ -22,5 +22,5 @@ p none?(set) { |s| s > 2 }                 # => true
 # Recursive Array form
 def none?(arr, &block)
   return true if arr.empty?
-  block.call(arr.first) ? false : none?(arr.drop(1), &block)
+  block.call(arr.first) ? false : none?(arr.drop(1), block)
 end

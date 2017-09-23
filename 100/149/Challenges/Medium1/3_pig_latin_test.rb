@@ -1,6 +1,6 @@
 require 'minitest/autorun'
 require 'minitest/reporters'
-require_relative '3_pig_latin'
+require_relative 'new.rb'
 
 MiniTest::Reporters.use!
 

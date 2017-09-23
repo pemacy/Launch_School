@@ -1,0 +1,16 @@
+<!doctype html>
+<html>
+	<head>
+		<title>CMS App</title>
+		<link rel='stylesheet' href='/css/cms.css'>
+	</head>
+	<body>
+		<% if settings.info_msg[:msg] %>
+			<div class='message'>
+				<%= settings.info_msg.delete :msg %>
+			</div>
+		<% end %>
+		<%= yield %>
+	</body>
+</html>
+
