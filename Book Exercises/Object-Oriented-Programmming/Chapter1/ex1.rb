@@ -1,1 +1,0 @@
-# string_literal: true
