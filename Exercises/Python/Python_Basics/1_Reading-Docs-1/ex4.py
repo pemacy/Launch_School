@@ -34,3 +34,24 @@ s = 'hello'
 s = list(s)
 s.reverse()
 s = ''.join(s)
+
+'''
+Alternate using slicing
+
+s = 'hello'
+print(s[::-1])
+
+slice notation: [start:stop:step]
+- if step is negative it is [stop:start:-step]
+
+ex:
+    s = 'abcdef'
+    s[0:3:1] = 'abcd'
+    s[0:2:1] = 'abc'
+    s[0:3:2] = 'ac' --> s[0] = 'a', s[0 + 2] = h[2] = 'c'
+    s[3:0:-1] = 'dcba' --> s[3] = 'd', s[2] = 'c', s[1] = 'b', s[0] = 'a'
+    s[3:0:-2] = 'db'
+
+    s[::] = s[0:last_index:1]
+    s[::-1] = s[last_index:0:-1]
+'''
