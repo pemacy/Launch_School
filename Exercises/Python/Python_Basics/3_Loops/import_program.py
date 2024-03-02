@@ -1,0 +1,3 @@
+import myman
+
+myman.hello()
