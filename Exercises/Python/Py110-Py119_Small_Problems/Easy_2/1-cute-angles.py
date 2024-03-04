@@ -1,0 +1,33 @@
+'''
+Write a function that takes a floating point number representing an angle between 0 and 360 degrees and returns a string representing that angle in degrees, minutes, and seconds. You should use a degree symbol (˚) to represent degrees, a single quote (') to represent minutes, and a double quote (") to represent seconds. There are 60 minutes in a degree, and 60 seconds in a minute.
+'''
+
+import math
+
+DEGREE_SYMBOL = '\u00b0'
+
+def dms(f):
+    deg = math.trunc(f)
+    if deg == 0:
+        hours = mins = 0
+    else:
+        hours_min = (f - deg) * 60
+        hours = math.trunc(hours_min)
+
+        if hours == 0:
+            mins = 0
+        else:
+            mins = math.trunc((hours_min - hours) * 60)
+
+    hours = str(hours).rjust(2, '0')
+    mins = str(mins).rjust(2, '0')
+
+    return f'{deg}{DEGREE_SYMBOL}{hours}\'{mins}\"'
+
+# All of these examples should print True
+print(dms(30) == "30°00'00\"")
+print(dms(76.73) == "76°43'48\"")
+print(dms(254.6) == "254°35'59\"")
+print(dms(93.034773) == "93°02'05\"")
+print(dms(0) == "0°00'00\"")
+print(dms(360) == "360°00'00\"" or dms(360) == "0°00'00\"")
