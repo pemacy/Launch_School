@@ -9,4 +9,4 @@ del pets['Dog']
 pets['Snake'] = 'Sssss'
 print(keys)
 
-# Values printed: ['Cat', 'Dog', 'Bird']
+# Values printed: ['Cat', 'Bird', 'Snake']
