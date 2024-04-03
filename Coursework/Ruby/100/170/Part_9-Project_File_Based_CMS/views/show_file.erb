@@ -1,0 +1,9 @@
+<% @contents.each do |line| %>
+	<% if @file =~ /.md/ %>
+		<%= render_markdown(line) %>
+	<% else %>
+		<p><%= line %></p>	
+	<% end %>
+<% end %>
+
+<p><a href='/'>Home</a></p>

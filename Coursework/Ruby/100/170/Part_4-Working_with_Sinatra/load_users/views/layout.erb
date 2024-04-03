@@ -1,0 +1,12 @@
+<% # home.erb %>
+
+<html>
+  <head>
+    <title><%= @title %></title>
+  </head>
+  <body>
+    <%= yield %>
+    <br>
+    <p>There are <%= @users.keys.count %> users with a total of <%= count_interests %> interests.</p>
+  </body>
+</html>

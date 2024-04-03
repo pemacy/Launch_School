@@ -1,0 +1,21 @@
+<% # home.erb %>
+
+<html>
+  <head>
+    <title>Dynamic Directory</title>
+  </head>
+  <body>
+    <h2>Welcome to the dynamic directory!</h2>
+    <h3>Here is a list of files in the public directory</h3>
+    <ul>
+      <% files = [] %>
+      <% Dir.foreach('public') { |file| files << file if file =~ /.txt/ } %>
+      <% files.reverse.each_with_index do |filename, idx| %>
+        <li>
+          <a href= <%="/file/#{idx + 1}"%>><%= filename %></a>
+        </li>
+      <% end %>
+    </ul>
+    <a href="/">Sort Ascending</a>
+  </body>
+</html>
