@@ -106,12 +106,16 @@ def welcome():
     '''
     clear_screen()
     print('Welcome to 21 Black Jack!')
-    print("\n\t• Goal: Get as close to 21 as possible without going over.")
-    print("\t• Everyone is dealt 2 cards")
-    print("\t• Computer player's first card is hidden")
-    print("\t• Options: 'Hit' to add cards, 'Stay' to hold your total.")
+    print('Game Rules:')
+    print("\n\t• All players are dealt 2 cards.")
+    print("\t• You can see both your cards, but computer player's first card is hidden.")
+    print("\t• Scores are tallied from the values of the cards in your hand.")
+    print("\t• You win by getting as close to, or equal to, 21 as you can.")
+    print("\t• During your round:")
+    print("\t\t• You can add a card to your hand by choosing to Hit.")
+    print("\t\t• Or you can end your turn with your current hand by choosing to Stay.")
     print("\t• Going over 21 is a 'bust', resulting in an automatic loss.")
-    print("\t• Dealer wins tie breakers")
+    print("\t• The Dealer wins any tie breakers.")
     print("\nGood Luck!")
 
 # ==================
