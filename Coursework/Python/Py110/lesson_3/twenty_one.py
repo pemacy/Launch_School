@@ -102,7 +102,6 @@ def run():
 def welcome():
     '''
     Displays welcome screen
-    Determines number of players
     Returns None
     '''
     clear_screen()
