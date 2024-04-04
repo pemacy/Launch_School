@@ -19,9 +19,9 @@ CARD_NAMES = LOW_CARD_NAMES + FACE_CARD_NAMES
 LOW_CARD_VALUES = list(range(2,11))
 FACE_CARD_VALUES = [ 10, 10, 10, 11 ]
 CARD_VALUES = LOW_CARD_VALUES + FACE_CARD_VALUES
-CARD_VALUE_TABLE = dict(zip(CARD_NAMES, CARD_VALUES))
 
 # Deck Constant
+CARD_VALUE_TABLE = dict(zip(CARD_NAMES, CARD_VALUES))
 SUITE_NAMES = [ 'Spades', 'Clubs', 'Hearts', 'Diamonds' ]
 DECK_REFERENCE = { F"{name} of {suite}": value for suite in SUITE_NAMES
                               for name, value in CARD_VALUE_TABLE.items()}
