@@ -38,13 +38,15 @@ AI_RISK_LEVELS = {
 # Display Constants
 MAX_CARD_NAME_LENGTH = max(len(title) for title in DECK_REFERENCE)
 CARD_HORIZ = MAX_CARD_NAME_LENGTH + 2
-TOP_BAR = '=' * 80
+BANNER_LENGTH = 80
+SEPARATOR_BAR = '=' * BANNER_LENGTH
 HIDDEN_CARD = '?????'
 
 # Gameplay Constants
 AI_DELAY = 1.5
 END_ROUND_DELAY = 2
 BUST_VALUE = 22
+MAX_AI_PLAYERS = 4
 GAME_VALUES = {}
 PLAYER_INFO = {'name': None,
                'player_number': None,
@@ -105,7 +107,8 @@ def welcome():
     Returns None
     '''
     clear_screen()
-    print('Welcome to 21 Black Jack!')
+    display_banner('Welcome to 21 Black Jack!')
+    print_separator_bar()
     print('Game Rules:')
     print("\n\t• All players are dealt 2 cards.")
     print("\t• You can see both your cards, but computer player's first card is hidden.")
@@ -147,6 +150,7 @@ def play_user_round(player):
     '''
     while not player['has_busted']:
         clear_screen()
+        display_banner(F"{player['name']} Round")
         display_player(player, True)
         display_error_messages()
         player_selection = input('\nWould you like to hit or stay? (h/s): ').casefold()
@@ -165,6 +169,7 @@ def play_ai_round(player):
     while (not player['has_busted']) and \
           (player['hand_value'] <= AI_RISK_LEVELS[player['risk_level']]):
         clear_screen()
+        display_banner(F"{player['name']} Round")
         display_player(player, True)
         hit(player)
         display_ai_round_play_hit(player)
@@ -180,9 +185,11 @@ def determine_number_of_players():
     Loads that integer into GAME_VALUES['num_players']
     Returns None
     '''
+    print_separator_bar()
     while True:
         display_error_messages()
-        message = '\nEnter how many computer players you would like to play with (1-5): '
+        message = "\nHow many computer players (AIs) would like to " \
+                  F"play with (1-{MAX_AI_PLAYERS})?: "
         user_input = input(message)
         if user_input.isdigit():
             break
@@ -190,9 +197,9 @@ def determine_number_of_players():
     # forces min to be 1 and max to be 5
     user_input = int(user_input)
     ai_players = max(user_input, 1)
-    ai_players = min(ai_players, 5)
+    ai_players = min(ai_players, MAX_AI_PLAYERS)
     GAME_VALUES['num_players'] = ai_players
-    if user_input > 5 or user_input < 1:
+    if user_input > MAX_AI_PLAYERS or user_input < 1:
         print("You entered a value outside the acceptable range.")
         print(F"Computer players has been set to {ai_players}")
         enter_to_continue()
@@ -483,6 +490,7 @@ def display_results():
     Rreturns None
     '''
     clear_screen()
+    display_banner('BlackJack Table Results')
     winners_names = [ player['name'] for player in GAME_VALUES['winners'] ]
     print(F"With a score of {GAME_VALUES['winning_score']}")
     if GAME_VALUES['num_winners'] > 1:
@@ -490,6 +498,12 @@ def display_results():
     else:
         print(F"{''.join(winners_names)} won the round!")
     display_winning_order(False)
+
+def display_banner(title):
+    '''
+    Displays title for the results display
+    '''
+    print(F"{title.center(BANNER_LENGTH)}\n")
 
 def display_error_messages():
     '''
@@ -518,6 +532,7 @@ def display_ai_round_play_stay(player):
     Returns None
     '''
     clear_screen()
+    display_banner(F"{player['name']} Round")
     display_player(player, True)
     print(F"{player['name']} is Deciding")
     delay(AI_DELAY)
@@ -531,6 +546,7 @@ def display_table(round_play = True):
     Displays actual scores for player 1, and public scores for other players
     Returns None
     '''
+    display_banner('BlackJack Table')
     for player in GAME_VALUES['players']:
         display_player(player, round_play)
 
@@ -549,7 +565,7 @@ def display_player(player, round_play):
     Displays a players stats on the table
     Returns None
     '''
-    print(TOP_BAR)
+    print_separator_bar()
     new_line()
     print(player['name'], ':')
     print(formatted_card_display_string(player, round_play))
@@ -732,6 +748,7 @@ def enter_to_continue():
     Press enter to continue
     Return None
     '''
+    print_separator_bar()
     input('\nPress enter to continue: ')
 
 def clear_screen():
@@ -754,6 +771,12 @@ def new_line():
     Returns None
     '''
     print('')
+
+def print_separator_bar():
+    '''
+    Prints separator bar
+    '''
+    print(SEPARATOR_BAR)
 
 # ==================
 # Play The Game ...
