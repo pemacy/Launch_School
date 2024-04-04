@@ -167,6 +167,69 @@ def play_ai_round(player):
     display_ai_round_play_stay(player)
 
 # ==================
+# Initialization Functions
+# ==================
+
+def determine_number_of_players():
+    '''
+    Asks for how many players will play
+    Loads that integer into GAME_VALUES['num_players']
+    Returns None
+    '''
+    while True:
+        display_error_messages()
+        message = '\nEnter how many computer players you would like to play with (1-5): '
+        user_input = input(message)
+        if user_input.isdigit():
+            break
+        GAME_VALUES['error_messages'].append('Invalid entry please try again')
+    # forces min to be 1 and max to be 5
+    user_input = int(user_input)
+    ai_players = max(user_input, 1)
+    ai_players = min(ai_players, 5)
+    GAME_VALUES['num_players'] = ai_players
+    if user_input > 5 or user_input < 1:
+        print("You entered a value outside the acceptable range.")
+        print(F"Computer players has been set to {ai_players}")
+        enter_to_continue()
+
+def initialize_players():
+    '''
+    Adds a player's information to the GAME_VALUES['players'] list
+    Returns None
+    '''
+    initialize_user()
+    initialize_ai_players()
+
+def initialize_ai_players():
+    '''
+    Initializes data for AI players
+    Returns None
+    '''
+    for i in range(1, GAME_VALUES['num_players'] + 1):
+        ai_info = copy.deepcopy(PLAYER_INFO)
+        if i == GAME_VALUES['num_players']:
+            ai_info['name'] = 'Dealer'
+            ai_info['risk_level'] = 'low'
+        else:
+            ai_info['name'] = F"AI {i}"
+            ai_info['risk_level'] = random.choice(list(AI_RISK_LEVELS))
+        ai_info['player_type'] = 'ai'
+        ai_info['player_number'] = i + 1
+        GAME_VALUES['players'].append(ai_info)
+
+def initialize_user():
+    '''
+    Initializes data for User player
+    Returns None
+    '''
+    user_info = copy.deepcopy(PLAYER_INFO)
+    user_info['name'] = "Player 1"
+    user_info['player_type'] = 'human'
+    user_info['player_number'] = 1
+    GAME_VALUES['players'].append(user_info)
+
+# ==================
 # Evaluation Functions
 # ==================
 
@@ -198,8 +261,8 @@ def evaluate_winners():
 
 def evaluate_busters():
     '''
-    Evaluates winning score and
-    Assigns GAME_VALUES['winning_score'] to that value
+    If everyone busts, it sets winning score to busted
+    Returns None
     '''
     GAME_VALUES['winning_score'] = 'Everyone Busted!'
     GAME_VALUES['winners'].append(make_busted_player())
@@ -234,75 +297,47 @@ def evaluate_player_score(player):
     return player['alt_hand_value']
 
 # ==================
-# Display Functions
+# Game Utility Functions
 # ==================
 
-def display_results():
+def deal_cards():
     '''
-    Displays results of the round
-    Rreturns None
-    '''
-    clear_screen()
-    winners_names = [ player['name'] for player in GAME_VALUES['winners'] ]
-    print(F"With a score of {GAME_VALUES['winning_score']}")
-    if GAME_VALUES['num_winners'] > 1:
-        print(F"{' and '.join(winners_names)} won the round!")
-    else:
-        print(F"{''.join(winners_names)} won the round!")
-    display_winning_order(False)
-
-def display_error_messages():
-    '''
-    Prints error messages
-    Clears error messages
+    Deals initial 2 cards to each player
+    Calculates
     Returns None
     '''
-    for message in GAME_VALUES['error_messages']:
-        print(message)
-    GAME_VALUES['error_messages'].clear()
+    for _ in range(2):
+        for player in GAME_VALUES['players']:
+            deal_card_from_deck(player)
 
-def display_ai_round_play_hit(player):
+def deal_card_from_deck(player):
     '''
-    Displays slow progression of AI play for user experience
+    Puts a card from the deck into a player's hand
+    Updates player's hand information
     Returns None
     '''
-    print(F"{player['name']} is Deciding")
-    delay(AI_DELAY)
-    print(F"\n{player['name']} decides to Hit!")
-    delay(AI_DELAY)
-    print(F"\nHe draws a {player['hand'][-1]}")
+    card = take_card_from_deck()
+    update_player_hand_info(player, card)
 
-def display_ai_round_play_stay(player):
+def take_card_from_deck():
     '''
-    Displays slow progression of AI play for user experience
+    Pops a card from the deck and returns that card
+    '''
+    return GAME_VALUES['deck'].pop()
+
+def hit(player):
+    '''
+    Pops a card from the deck and returns that card
     Returns None
     '''
-    clear_screen()
-    display_player(player, True)
-    print(F"{player['name']} is Deciding")
-    delay(AI_DELAY)
-    print(F"\n{player['name']} will Stay")
-    delay(AI_DELAY)
+    deal_card_from_deck(player)
 
-def display_table(round_play = True):
+def shuffle_deck():
     '''
-    Loops through players
-    Displays the players hands on the terminal
-    Displays actual scores for player 1, and public scores for other players
+    Shuffles the array of deck cards
     Returns None
     '''
-    for player in GAME_VALUES['players']:
-        display_player(player, round_play)
-
-def display_winning_order(round_play):
-    '''
-    Loops through players
-    Displays the players hands on the terminal
-    Displays actual scores for player 1, and public scores for other players
-    Returns None
-    '''
-    for player in winning_order():
-        display_player(player, round_play)
+    random.shuffle(GAME_VALUES['deck'])
 
 def winning_order():
     '''
@@ -325,203 +360,26 @@ def return_score(player):
         score *= -1
     return score
 
-def display_player(player, round_play):
-    '''
-    Displays a players stats on the table
-    Returns None
-    '''
-    print(TOP_BAR)
-    new_line()
-    print(player['name'], ':')
-    print(formatted_card_display_string(player, round_play))
-    display_player_hand_value(player, round_play)
-    if round_play:
-        display_turn_status(player)
 
-def display_turn_status(player):
+def make_busted_player():
     '''
-    Displays if player's turn has ended
-    Return None
+    In the rare case everyone busts, this player becomes the 'winner'
+    Returns busted_player dictionary
     '''
-    if player['turn_ended']:
-        print(F"{player['name']}'s Turn has Ended\n")
+    busted_player = copy.deepcopy(PLAYER_INFO)
+    busted_player['name'] = 'Nobody'
+    busted_player['player_number'] = 0
+    busted_player['player_type'] = 'ai'
+    busted_player['turn_ended'] = True
+    return busted_player
 
-def display_player_hand_value(player, round_play):
+def find_player_by_name(name):
     '''
-    Prints Hand Value based on Player number and round play
-    Returns None
+    Returns player dictionary based on name of player
     '''
-    if round_play:
-        if player['player_number'] == 1:
-            display_total_hand_value(player)
-            return
-        display_public_hand_value(player)
-        return
-    display_total_score(player)
-
-def display_total_hand_value(player):
-    '''
-    Prints total hand value
-    Returns None
-    '''
-    print(F"Hand Value: {player['hand_value']}")
-    if player['has_alt_hand_value']:
-        display_alternate_hand_value(player)
-    display_bust_status(player)
-
-def display_total_score(player):
-    '''
-    Prints total hand value
-    Returns None
-    '''
-    print(F"Score: {player['score']}")
-    display_bust_status(player)
-
-def display_alternate_hand_value(player, public = False):
-    '''
-    Displays alternate hand value
-    Returns None
-    '''
-    if public:
-        print(F"Alternate Public Ace Hand Value: {player['alt_public_hand_value']}")
-    else:
-        print(F"Alternate Ace Hand Value: {player['alt_hand_value']}")
-
-def display_bust_status(player):
-    '''
-    Displays bust if player busts, or nothing if they didn't bust
-    Returns None
-    '''
-    highlight_bar = '=' * 10
-    if player['has_busted']:
-        print(highlight_bar, F"{player['name']} BUSTS", highlight_bar)
-
-def display_public_hand_value(player):
-    '''
-    Prints public hand value (hides first card value)
-    Returns None
-    '''
-    print(F"Public Hand Value: {player['public_hand_value']}")
-    if player['has_alt_hand_value'] and not is_first_card_an_ace(player):
-        display_alternate_hand_value(player, public = True)
-
-# ==================
-# Predicate Functions
-# ==================
-
-def has_everyone_busted():
-    '''
-    Returns True if all players busted, False otherwise
-    '''
-    return all(player['has_busted'] for player in GAME_VALUES['players'])
-
-def is_dealer_winner():
-    '''
-    Returns True if dealer won
-    False otherwise
-    '''
-    return GAME_VALUES['winners'][0]['name'] == 'Dealer'
-
-def is_first_card_an_ace(player):
-    '''
-    Returns True if first card is an Ace
-    Important for not displaying alternate hand value
-    '''
-    return 'Ace' in player['hand'][0]
-
-# ==================
-# Diplay Formatting Functions
-# ==================
-
-def formatted_card_display_string(player, round_play):
-    '''
-    Returns formatted string for card display
-    '''
-    formatted_hand = generate_card_line(player, card_line_1()) + \
-                     generate_card_line(player, card_line_2()) + \
-                     generate_card_title_line(player, round_play) + \
-                     generate_card_line(player, card_line_4())
-    return formatted_hand
-
-def generate_card_line(player, text):
-    '''
-    Returns line of hand for display
-    '''
-    spacer = '  '
-    line = ''
-    for _ in range(player['cards_in_hand'] - 1):
-        line += text
-        line += spacer
-    line += text
-    line += '\n'
-    return line
-
-def generate_card_title_line(player, round_play):
-    '''
-    Returns line of card titles for display
-    '''
-    spacer = '  '
-    line = card_line_3(first_card_display(player, round_play)) + spacer
-    for i in range(1, player['cards_in_hand'] - 1):
-        line += card_line_3(player['hand'][i])
-        line += spacer
-    line += card_line_3(player['hand'][-1])
-    line += '\n'
-    return line
-
-def first_card_display(player, round_play):
-    '''
-    Returns ???? for first card (face down card) for everyone but player 1
-    Returns title of first card for player one (will show face up for player 1)
-    '''
-    if round_play and player['player_number'] != 1:
-        card_title = HIDDEN_CARD
-    else:
-        card_title = player['hand'][0]
-    return card_title
-
-def card_line_1():
-    '''
-    Returns line 1 of card display
-    '''
-    return ' ' + ('_' * CARD_HORIZ) + ' '
-
-def card_line_2():
-    '''
-    Returns line 2 of card display
-    '''
-    return '|' + (' ' * CARD_HORIZ) + '|'
-
-def card_line_3(card_title):
-    '''
-    Returns line 3 of card display
-    '''
-    return '| ' +  card_title.center(MAX_CARD_NAME_LENGTH) + ' |'
-
-def card_line_4():
-    '''
-    Returns bottom of card border
-    '''
-    return '|' + ('_' * CARD_HORIZ) + '|'
-
-def deal_cards():
-    '''
-    Deals initial 2 cards to each player
-    Calculates
-    Returns None
-    '''
-    for _ in range(2):
-        for player in GAME_VALUES['players']:
-            deal_card_from_deck(player)
-
-def deal_card_from_deck(player):
-    '''
-    Puts a card from the deck into a player's hand
-    Updates player's hand information
-    Returns None
-    '''
-    card = take_card_from_deck()
-    update_player_hand_info(player, card)
+    result = [ player for player in GAME_VALUES['players']
+              if player['name'] == name ]
+    return result[0]
 
 # ==================
 # Player Update Functions
@@ -611,112 +469,255 @@ def update_alt_hand_values_list(player):
         player['alt_hand_values'] = player['hand_values'][:]
         player['alt_hand_values'][idx] = 1
 
-def take_card_from_deck():
-    '''
-    Pops a card from the deck and returns that card
-    '''
-    return GAME_VALUES['deck'].pop()
-
-def hit(player):
-    '''
-    Pops a card from the deck and returns that card
-    Returns None
-    '''
-    deal_card_from_deck(player)
-
 # ==================
-# Initialization Functions
+# Display Functions
 # ==================
 
-def determine_number_of_players():
+def display_results():
     '''
-    Asks for how many players will play
-    Loads that integer into GAME_VALUES['num_players']
-    Returns None
+    Displays results of the round
+    Rreturns None
     '''
-    while True:
-        display_error_messages()
-        message = '\nEnter how many computer players you would like to play with (1-5): '
-        user_input = input(message)
-        if user_input.isdigit():
-            break
-        GAME_VALUES['error_messages'].append('Invalid entry please try again')
-    # forces min to be 1 and max to be 5
-    user_input = int(user_input)
-    ai_players = max(user_input, 1)
-    ai_players = min(ai_players, 5)
-    GAME_VALUES['num_players'] = ai_players
-    if user_input > 5 or user_input < 1:
-        print("You entered a value outside the acceptable range.")
-        print(F"Computer players has been set to {ai_players}")
-        enter_to_continue()
+    clear_screen()
+    winners_names = [ player['name'] for player in GAME_VALUES['winners'] ]
+    print(F"With a score of {GAME_VALUES['winning_score']}")
+    if GAME_VALUES['num_winners'] > 1:
+        print(F"{' and '.join(winners_names)} won the round!")
+    else:
+        print(F"{''.join(winners_names)} won the round!")
+    display_winning_order(False)
 
-def initialize_players():
+def display_error_messages():
     '''
-    Adds a player's information to the GAME_VALUES['players'] list
+    Prints error messages
+    Clears error messages
     Returns None
     '''
-    initialize_user()
-    initialize_ai_players()
+    for message in GAME_VALUES['error_messages']:
+        print(message)
+    GAME_VALUES['error_messages'].clear()
 
-def initialize_ai_players():
+def display_ai_round_play_hit(player):
     '''
-    Initializes data for AI players
+    Displays slow progression of AI play for user experience
     Returns None
     '''
-    for i in range(1, GAME_VALUES['num_players'] + 1):
-        ai_info = copy.deepcopy(PLAYER_INFO)
-        if i == GAME_VALUES['num_players']:
-            ai_info['name'] = 'Dealer'
-            ai_info['risk_level'] = 'low'
-        else:
-            ai_info['name'] = F"AI {i}"
-            ai_info['risk_level'] = random.choice(list(AI_RISK_LEVELS))
-        ai_info['player_type'] = 'ai'
-        ai_info['player_number'] = i + 1
-        GAME_VALUES['players'].append(ai_info)
+    print(F"{player['name']} is Deciding")
+    delay(AI_DELAY)
+    print(F"\n{player['name']} decides to Hit!")
+    delay(AI_DELAY)
+    print(F"\nHe draws a {player['hand'][-1]}")
 
-def initialize_user():
+def display_ai_round_play_stay(player):
     '''
-    Initializes data for User player
+    Displays slow progression of AI play for user experience
     Returns None
     '''
-    user_info = copy.deepcopy(PLAYER_INFO)
-    user_info['name'] = "Player 1"
-    user_info['player_type'] = 'human'
-    user_info['player_number'] = 1
-    GAME_VALUES['players'].append(user_info)
+    clear_screen()
+    display_player(player, True)
+    print(F"{player['name']} is Deciding")
+    delay(AI_DELAY)
+    print(F"\n{player['name']} will Stay")
+    delay(AI_DELAY)
 
-def shuffle_deck():
+def display_table(round_play = True):
     '''
-    Shuffles the array of deck cards
+    Loops through players
+    Displays the players hands on the terminal
+    Displays actual scores for player 1, and public scores for other players
     Returns None
     '''
-    random.shuffle(GAME_VALUES['deck'])
+    for player in GAME_VALUES['players']:
+        display_player(player, round_play)
+
+def display_winning_order(round_play):
+    '''
+    Loops through players
+    Displays the players hands on the terminal
+    Displays actual scores for player 1, and public scores for other players
+    Returns None
+    '''
+    for player in winning_order():
+        display_player(player, round_play)
+
+def display_player(player, round_play):
+    '''
+    Displays a players stats on the table
+    Returns None
+    '''
+    print(TOP_BAR)
+    new_line()
+    print(player['name'], ':')
+    print(formatted_card_display_string(player, round_play))
+    display_player_hand_value(player, round_play)
+    if round_play:
+        display_turn_status(player)
+
+def display_turn_status(player):
+    '''
+    Displays if player's turn has ended
+    Return None
+    '''
+    if player['turn_ended']:
+        print(F"{player['name']}'s Turn has Ended\n")
+
+def display_player_hand_value(player, round_play):
+    '''
+    Prints Hand Value based on Player number and round play
+    Returns None
+    '''
+    if round_play:
+        if player['player_number'] == 1:
+            display_total_hand_value(player)
+            return
+        display_public_hand_value(player)
+        return
+    display_total_score(player)
+
+def display_total_hand_value(player):
+    '''
+    Prints total hand value
+    Returns None
+    '''
+    print(F"Hand Value: {player['hand_value']}")
+    if player['has_alt_hand_value']:
+        display_alternate_hand_value(player)
+    display_bust_status(player)
+
+def display_total_score(player):
+    '''
+    Prints total hand value
+    Returns None
+    '''
+    print(F"Score: {player['score']}")
+    display_bust_status(player)
+
+def display_alternate_hand_value(player, public = False):
+    '''
+    Displays alternate hand value
+    Returns None
+    '''
+    if public:
+        print(F"Alternate Public Ace Hand Value: {player['alt_public_hand_value']}")
+    else:
+        print(F"Alternate Ace Hand Value: {player['alt_hand_value']}")
+
+def display_bust_status(player):
+    '''
+    Displays bust if player busts, or nothing if they didn't bust
+    Returns None
+    '''
+    highlight_bar = '=' * 10
+    if player['has_busted']:
+        print(highlight_bar, F"{player['name']} BUSTS", highlight_bar)
+
+def display_public_hand_value(player):
+    '''
+    Prints public hand value (hides first card value)
+    Returns None
+    '''
+    print(F"Public Hand Value: {player['public_hand_value']}")
+    if player['has_alt_hand_value'] and not is_first_card_an_ace(player):
+        display_alternate_hand_value(player, public = True)
 
 # ==================
-# Game Utility Functions
+# Diplay Formatting Functions
 # ==================
 
-def make_busted_player():
+def formatted_card_display_string(player, round_play):
     '''
-    In the rare case everyone busts, this player becomes the 'winner'
-    Returns busted_player dictionary
+    Returns formatted string for card display
     '''
-    busted_player = copy.deepcopy(PLAYER_INFO)
-    busted_player['name'] = 'Nobody'
-    busted_player['player_number'] = 0
-    busted_player['player_type'] = 'ai'
-    busted_player['turn_ended'] = True
-    return busted_player
+    formatted_hand = generate_card_line(player, card_line_1()) + \
+                     generate_card_line(player, card_line_2()) + \
+                     generate_card_title_line(player, round_play) + \
+                     generate_card_line(player, card_line_4())
+    return formatted_hand
 
-def find_player_by_name(name):
+def generate_card_line(player, text):
     '''
-    Returns player dictionary based on name of player
+    Returns line of hand for display
     '''
-    result = [ player for player in GAME_VALUES['players']
-              if player['name'] == name ]
-    return result[0]
+    spacer = '  '
+    line = ''
+    for _ in range(player['cards_in_hand'] - 1):
+        line += text
+        line += spacer
+    line += text
+    line += '\n'
+    return line
+
+def generate_card_title_line(player, round_play):
+    '''
+    Returns line of card titles for display
+    '''
+    spacer = '  '
+    line = card_line_3(first_card_display(player, round_play)) + spacer
+    for i in range(1, player['cards_in_hand'] - 1):
+        line += card_line_3(player['hand'][i])
+        line += spacer
+    line += card_line_3(player['hand'][-1])
+    line += '\n'
+    return line
+
+def first_card_display(player, round_play):
+    '''
+    Returns ???? for first card (face down card) for everyone but player 1
+    Returns title of first card for player one (will show face up for player 1)
+    '''
+    if round_play and player['player_number'] != 1:
+        card_title = HIDDEN_CARD
+    else:
+        card_title = player['hand'][0]
+    return card_title
+
+def card_line_1():
+    '''
+    Returns line 1 of card display
+    '''
+    return ' ' + ('_' * CARD_HORIZ) + ' '
+
+def card_line_2():
+    '''
+    Returns line 2 of card display
+    '''
+    return '|' + (' ' * CARD_HORIZ) + '|'
+
+def card_line_3(card_title):
+    '''
+    Returns line 3 of card display
+    '''
+    return '| ' +  card_title.center(MAX_CARD_NAME_LENGTH) + ' |'
+
+def card_line_4():
+    '''
+    Returns bottom of card border
+    '''
+    return '|' + ('_' * CARD_HORIZ) + '|'
+
+# ==================
+# Predicate Functions
+# ==================
+
+def has_everyone_busted():
+    '''
+    Returns True if all players busted, False otherwise
+    '''
+    return all(player['has_busted'] for player in GAME_VALUES['players'])
+
+def is_dealer_winner():
+    '''
+    Returns True if dealer won
+    False otherwise
+    '''
+    return GAME_VALUES['winners'][0]['name'] == 'Dealer'
+
+def is_first_card_an_ace(player):
+    '''
+    Returns True if first card is an Ace
+    Important for not displaying alternate hand value
+    '''
+    return 'Ace' in player['hand'][0]
 
 # ==================
 # General Utility Functions
