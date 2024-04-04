@@ -4,7 +4,7 @@
 
 import random
 import os
-import copy
+import math
 
 # ==================
 # Constants
@@ -41,31 +41,20 @@ CARD_HORIZ = MAX_CARD_NAME_LENGTH + 2
 BANNER_LENGTH = 80
 SEPARATOR_BAR = '=' * BANNER_LENGTH
 HIDDEN_CARD = '?????'
+AI_DELAY = 0
+END_ROUND_DELAY = 0
 
 # Gameplay Constants
-AI_DELAY = 1.5
-END_ROUND_DELAY = 2
+ROUNDS_TO_PLAY = 5
+ROUNDS_NEEDED_TO_WIN = math.ceil(ROUNDS_TO_PLAY / 2)
 BUST_VALUE = 22
 MAX_AI_PLAYERS = 4
-GAME_VALUES = {}
-PLAYER_INFO = {'name': None,
-               'player_number': None,
-               'player_type': None,
-               'hand': [],
-               'hand_values': [],
-               'alt_hand_values': [],
-               'cards_in_hand': 0,
-               'hand_value': 0,
-               'alt_hand_value': 0,
-               'public_hand_value': 0,
-               'alt_public_hand_value': 0,
-               'score': 0,
-               'has_alt_hand_value': False,
-               'has_busted': False,
-               'turn_ended': False,
-               # risk_level: ai and dealer players only
-               }
 
+# ==================
+# GLOBAL_VARIABLES
+# ==================
+game_values = {}
+round_values = {}
 
 # ==================
 # Game Play
@@ -76,29 +65,72 @@ def init_new_game():
     Initiates new game values
     Returns None
     '''
-    GAME_VALUES['deck'] = list(DECK_REFERENCE.keys())
-    GAME_VALUES['num_players'] = None
-    GAME_VALUES['players'] = []
-    GAME_VALUES['busted_players'] = []
-    GAME_VALUES['error_messages'] = []
-    GAME_VALUES['rankings'] = None
-    GAME_VALUES['winners'] = []
-    GAME_VALUES['num_winners'] = 0
-    GAME_VALUES['winning_score'] = 0
-    shuffle_deck()
+    game_values['num_players'] = None
+    game_values['players'] = []
+    game_values['error_messages'] = []
+    game_values['rounds_played'] = 0
+    game_values['round_winners'] = {}
+    game_values['winner_tracker'] = {}
     determine_number_of_players()
     initialize_players()
 
-def run():
+def init_new_round():
+    '''
+    Initializes game attributes per round
+    Returns None
+    '''
+    round_values['deck'] = list(DECK_REFERENCE.keys())
+    round_values['busted_players'] = []
+    round_values['winners'] = []
+    round_values['num_winners'] = 0
+    round_values['rankings'] = None
+    round_values['winning_score'] = 0
+    update_rounds_played()
+    reset_players()
+    shuffle_deck()
+
+def reset_players():
+    '''
+    Resets pertinent player stats for a new round
+    '''
+    for player in game_values['players']:
+        player['hand'] = []
+        player['hand_values'] = []
+        player['alt_hand_values'] = []
+        player['cards_in_hand'] = 0
+        player['hand_value'] = 0
+        player['alt_hand_value'] = 0
+        player['public_hand_value'] = 0
+        player['alt_public_hand_value'] = 0
+        player['score'] = 0
+        player['has_alt_hand_value'] = False
+        player['has_busted'] = False
+        player['turn_ended'] = False
+
+def play_game():
+    '''
+    Game play loop
+    '''
+    init_new_game()
+    while True:
+        play_round()
+        if has_all_rounds_played():
+            break
+        selection = ask_to_play_another_round()
+        if selection != 'y':
+            break
+
+def play_round():
     '''
     Runs the game
     Returns None
     '''
-    init_new_game()
+    init_new_round()
     deal_cards()
     play_rounds()
     evaluate_results()
-    display_results()
+    capture_round_stats()
+    display_round_results()
     enter_to_continue()
 
 def welcome():
@@ -130,7 +162,7 @@ def play_rounds():
     Goes through each player and plays their round
     Returns None
     '''
-    for player in GAME_VALUES['players']:
+    for player in game_values['players']:
         clear_screen()
         display_table()
         if player['player_type'] == 'human':
@@ -155,7 +187,7 @@ def play_user_round(player):
         display_error_messages()
         player_selection = input('\nWould you like to hit or stay? (h/s): ').casefold()
         if player_selection not in 'hs' or len(player_selection) == 0:
-            GAME_VALUES['error_messages'].append('Invalid selection, please try again')
+            game_values['error_messages'].append('Invalid selection, please try again')
         elif player_selection == 's':
             break
         else:
@@ -182,7 +214,7 @@ def play_ai_round(player):
 def determine_number_of_players():
     '''
     Asks for how many players will play
-    Loads that integer into GAME_VALUES['num_players']
+    Loads that integer into game_values['num_players']
     Returns None
     '''
     print_separator_bar()
@@ -193,12 +225,12 @@ def determine_number_of_players():
         user_input = input(message)
         if user_input.isdigit():
             break
-        GAME_VALUES['error_messages'].append('Invalid entry please try again')
+        game_values['error_messages'].append('Invalid entry please try again')
     # forces min to be 1 and max to be 5
     user_input = int(user_input)
     ai_players = max(user_input, 1)
     ai_players = min(ai_players, MAX_AI_PLAYERS)
-    GAME_VALUES['num_players'] = ai_players
+    game_values['num_players'] = ai_players
     if user_input > MAX_AI_PLAYERS or user_input < 1:
         print("You entered a value outside the acceptable range.")
         print(F"Computer players has been set to {ai_players}")
@@ -206,7 +238,7 @@ def determine_number_of_players():
 
 def initialize_players():
     '''
-    Adds a player's information to the GAME_VALUES['players'] list
+    Adds a player's information to the game_values['players'] list
     Returns None
     '''
     initialize_user()
@@ -217,28 +249,50 @@ def initialize_ai_players():
     Initializes data for AI players
     Returns None
     '''
-    for i in range(1, GAME_VALUES['num_players'] + 1):
-        ai_info = copy.deepcopy(PLAYER_INFO)
-        if i == GAME_VALUES['num_players']:
-            ai_info['name'] = 'Dealer'
-            ai_info['risk_level'] = 'low'
+    for i in range(1, game_values['num_players'] + 1):
+        player = {}
+        if i == game_values['num_players']:
+            initialize_dealer_player_specifics(player)
         else:
-            ai_info['name'] = F"AI {i}"
-            ai_info['risk_level'] = random.choice(list(AI_RISK_LEVELS))
-        ai_info['player_type'] = 'ai'
-        ai_info['player_number'] = i + 1
-        GAME_VALUES['players'].append(ai_info)
+            initialize_ai_player_specifics(player, i)
+        initialize_ai_player_general(player, i)
+
+def initialize_ai_player_general(player, player_num):
+    '''
+    Initializes general attribues of an AI player
+    Returns none
+    '''
+    player['player_type'] = 'ai'
+    player['player_number'] = player_num + 1
+    game_values['players'].append(player)
+
+def initialize_dealer_player_specifics(player):
+    '''
+    Initializes the dealer player
+    Returns none
+    '''
+    player['name'] = 'Dealer'
+    player['risk_level'] = 'low'
+
+def initialize_ai_player_specifics(player, player_num):
+    '''
+    Initializes an AI player
+    Returns none
+    '''
+    player['name'] = F"AI {player_num}"
+    player['risk_level'] = random.choice(list(AI_RISK_LEVELS))
 
 def initialize_user():
     '''
     Initializes data for User player
     Returns None
     '''
-    user_info = copy.deepcopy(PLAYER_INFO)
+    user_info = {}
     user_info['name'] = "Player 1"
     user_info['player_type'] = 'human'
     user_info['player_number'] = 1
-    GAME_VALUES['players'].append(user_info)
+    user_info['risk_level'] = 'user'
+    game_values['players'].append(user_info)
 
 # ==================
 # Evaluation Functions
@@ -261,22 +315,22 @@ def evaluate_winners():
     Evaluates who won the round
     Returns None
     '''
-    winning_score = sorted(GAME_VALUES['rankings'], reverse = True)[0]
-    GAME_VALUES['winning_score'] = winning_score
-    if 'Dealer' in GAME_VALUES['rankings'][winning_score]:
-        GAME_VALUES['winners'].append(find_player_by_name('Dealer'))
+    winning_score = sorted(round_values['rankings'], reverse = True)[0]
+    round_values['winning_score'] = winning_score
+    if 'Dealer' in round_values['rankings'][winning_score]:
+        round_values['winners'].append(find_player_by_name('Dealer'))
     else:
-        for name in GAME_VALUES['rankings'][winning_score]:
-            GAME_VALUES['winners'].append(find_player_by_name(name))
-        GAME_VALUES['num_winners'] = len(GAME_VALUES['winners'])
+        for name in round_values['rankings'][winning_score]:
+            round_values['winners'].append(find_player_by_name(name))
+        round_values['num_winners'] = len(round_values['winners'])
 
 def evaluate_busters():
     '''
     If everyone busts, it sets winning score to busted
     Returns None
     '''
-    GAME_VALUES['winning_score'] = 'Everyone Busted!'
-    GAME_VALUES['winners'].append(make_busted_player())
+    round_values['winning_score'] = 'Everyone Busted!'
+    round_values['winners'].append(make_busted_player())
 
 def evaluate_rankings():
     '''
@@ -285,15 +339,15 @@ def evaluate_rankings():
     Returns None
     '''
     rankings = {}
-    for player in GAME_VALUES['players']:
+    for player in game_values['players']:
         score = evaluate_player_score(player)
         player['score'] = score
         if player['has_busted']:
-            GAME_VALUES['busted_players'].append(player)
+            round_values['busted_players'].append(player)
             continue
         rankings.setdefault(score, [])
         rankings[score].append(player['name'])
-    GAME_VALUES['rankings'] = rankings
+    round_values['rankings'] = rankings
 
 def evaluate_player_score(player):
     '''
@@ -318,7 +372,7 @@ def deal_cards():
     Returns None
     '''
     for _ in range(2):
-        for player in GAME_VALUES['players']:
+        for player in game_values['players']:
             deal_card_from_deck(player)
 
 def deal_card_from_deck(player):
@@ -334,7 +388,7 @@ def take_card_from_deck():
     '''
     Pops a card from the deck and returns that card
     '''
-    return GAME_VALUES['deck'].pop()
+    return round_values['deck'].pop()
 
 def hit(player):
     '''
@@ -348,7 +402,7 @@ def shuffle_deck():
     Shuffles the array of deck cards
     Returns None
     '''
-    random.shuffle(GAME_VALUES['deck'])
+    random.shuffle(round_values['deck'])
 
 def winning_order():
     '''
@@ -356,9 +410,8 @@ def winning_order():
     '''
     order = []
     if is_dealer_winner():
-        order.append(GAME_VALUES['players'].pop())
-    score_sorted_players = sorted(GAME_VALUES['players'], key = return_score, reverse = True)
-    for player in score_sorted_players:
+        order.append(game_values['players'].pop())
+    for player in sorted_players_by_score_descending():
         order.append(player)
     return order
 
@@ -371,13 +424,18 @@ def return_score(player):
         score *= -1
     return score
 
+def sorted_players_by_score_descending():
+    '''
+    Returns the list of players sorted by their score from high to low
+    '''
+    return sorted(game_values['players'], key = return_score, reverse = True)
 
 def make_busted_player():
     '''
     In the rare case everyone busts, this player becomes the 'winner'
     Returns busted_player dictionary
     '''
-    busted_player = copy.deepcopy(PLAYER_INFO)
+    busted_player = {}
     busted_player['name'] = 'Nobody'
     busted_player['player_number'] = 0
     busted_player['player_type'] = 'ai'
@@ -388,13 +446,72 @@ def find_player_by_name(name):
     '''
     Returns player dictionary based on name of player
     '''
-    result = [ player for player in GAME_VALUES['players']
+    result = [ player for player in game_values['players']
               if player['name'] == name ]
     return result[0]
+
+def ask_to_play_another_round():
+    '''
+    Asks if user wants to end the game early or keep playing rounds
+    '''
+    clear_screen()
+    display_banner("Play Again?")
+    print_separator_bar()
+    while True:
+        print(F"\nYou have played {formatted_rounds_played_text(current_round())}")
+        selection = input('\nWould you like to play another round? (y/n): ')
+        if selection in 'yn' and len(selection) != 0:
+            break
+        print('Invalid input, please try again.')
+    return selection
+
+def current_round():
+    '''
+    Returns current round number
+    '''
+    return game_values['rounds_played']
 
 # ==================
 # Player Update Functions
 # ==================
+
+def capture_round_stats():
+    '''
+    Saves round_values in game_values['round_results']
+    Returns None
+    '''
+    capture_round_winners()
+    update_winner_tracker()
+
+def update_rounds_played():
+    '''
+    Updates rounds played in game_values
+    '''
+    game_values['rounds_played'] += 1
+
+def capture_round_winners():
+    '''
+    Adds round winners to game_value['round_winners'][round] list
+    '''
+    game_values['round_winners'][current_round()] = []
+    winner_list = game_values['round_winners'][current_round()]
+    for winner in round_values['winners']:
+        winner_stat = {}
+        winner_stat['name'] = winner['name']
+        winner_stat['risk_level'] = winner['risk_level']
+        winner_stat['cards_in_hand'] = winner['cards_in_hand']
+        winner_stat['hand'] = winner['hand']
+        winner_stat['score'] = winner['score']
+        winner_list.append(winner_stat)
+
+def update_winner_tracker():
+    '''
+    Updates the tracker of how many rounds each player has won
+    '''
+    winner_tracker = game_values['winner_tracker']
+    for winner in round_values['winners']:
+        winner_tracker.setdefault(winner['name'], 0)
+        winner_tracker[winner['name']] += 1
 
 def update_player_hand_info(player, card):
     '''
@@ -484,16 +601,37 @@ def update_alt_hand_values_list(player):
 # Display Functions
 # ==================
 
-def display_results():
+def display_game_results():
+    '''
+    Displays stats of all rounds played
+    '''
+    clear_screen()
+    print_separator_bar()
+    display_banner("Total Game Stats")
+    print(F"You played {game_values['rounds_played']} rounds.")
+    print("Winners:")
+    for name, rounds_won in game_values['winner_tracker'].items():
+        print(F"\t{name}: won {formatted_rounds_played_text(rounds_won)}")
+    for rnd, winners in game_values['round_winners'].items():
+        print_separator_bar()
+        display_banner(F"Round {rnd} Stats")
+        for winner in winners:
+            print(F"Winner: {winner['name']}")
+            print(F"Score: {winner['score']}")
+            print(F"Risk Level: {winner['risk_level']}")
+            print(F"Hand: {winner['hand']}")
+            # print(formatted_card_display_string(winner, False))
+
+def display_round_results():
     '''
     Displays results of the round
     Rreturns None
     '''
     clear_screen()
-    display_banner('BlackJack Table Results')
-    winners_names = [ player['name'] for player in GAME_VALUES['winners'] ]
-    print(F"With a score of {GAME_VALUES['winning_score']}")
-    if GAME_VALUES['num_winners'] > 1:
+    display_banner(F"Round {current_round()} BlackJack Table Results")
+    winners_names = [ player['name'] for player in round_values['winners'] ]
+    print(F"With a score of {round_values['winning_score']}")
+    if round_values['num_winners'] > 1:
         print(F"{' and '.join(winners_names)} won the round!")
     else:
         print(F"{''.join(winners_names)} won the round!")
@@ -511,9 +649,9 @@ def display_error_messages():
     Clears error messages
     Returns None
     '''
-    for message in GAME_VALUES['error_messages']:
+    for message in game_values['error_messages']:
         print(message)
-    GAME_VALUES['error_messages'].clear()
+    game_values['error_messages'].clear()
 
 def display_ai_round_play_hit(player):
     '''
@@ -546,8 +684,8 @@ def display_table(round_play = True):
     Displays actual scores for player 1, and public scores for other players
     Returns None
     '''
-    display_banner('BlackJack Table')
-    for player in GAME_VALUES['players']:
+    display_banner(F"Round {current_round()} BlackJack Table")
+    for player in game_values['players']:
         display_player(player, round_play)
 
 def display_winning_order(round_play):
@@ -644,6 +782,15 @@ def display_public_hand_value(player):
 # Diplay Formatting Functions
 # ==================
 
+def formatted_rounds_played_text(num):
+    '''
+    Returns how singular or plural rounds played text
+    '''
+    if num == 1:
+        return '1 round'
+    return F"{num} rounds"
+
+
 def formatted_card_display_string(player, round_play):
     '''
     Returns formatted string for card display
@@ -723,14 +870,14 @@ def has_everyone_busted():
     '''
     Returns True if all players busted, False otherwise
     '''
-    return all(player['has_busted'] for player in GAME_VALUES['players'])
+    return all(player['has_busted'] for player in game_values['players'])
 
 def is_dealer_winner():
     '''
     Returns True if dealer won
     False otherwise
     '''
-    return GAME_VALUES['winners'][0]['name'] == 'Dealer'
+    return round_values['winners'][0]['name'] == 'Dealer'
 
 def is_first_card_an_ace(player):
     '''
@@ -738,6 +885,12 @@ def is_first_card_an_ace(player):
     Important for not displaying alternate hand value
     '''
     return 'Ace' in player['hand'][0]
+
+def has_all_rounds_played():
+    '''
+    Returns True if all the planned rounds have been played
+    '''
+    return game_values['rounds_played'] == ROUNDS_TO_PLAY
 
 # ==================
 # General Utility Functions
@@ -783,13 +936,5 @@ def print_separator_bar():
 # ==================
 
 welcome()
-while True:
-    run()
-    clear_screen()
-    while True:
-        selection = input('\n\nWould you like to play again? (y/n): ')
-        if selection in 'yn' and len(selection) != 0:
-            break
-        print('Invalid input, please try again.')
-    if selection != 'y':
-        break
+play_game()
+display_game_results()
