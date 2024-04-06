@@ -27,9 +27,9 @@ SUITE_NAMES = [ 'Spades', 'Clubs', 'Hearts', 'Diamonds' ]
 DECK_REFERENCE = { F"{name} of {suite}": value for suite in SUITE_NAMES
                               for name, value in CARD_VALUE_TABLE.items()}
 # AI Risk Levels
-LOW_RISK_VALUE = 22
-MEDIUM_RISK_VALUE = 22
-HIGH_RISK_VALUE = 22
+LOW_RISK_VALUE = 15
+MEDIUM_RISK_VALUE = 17
+HIGH_RISK_VALUE = 20
 RISK_LEVELS = {
         'low': LOW_RISK_VALUE,
         'medium': MEDIUM_RISK_VALUE,
@@ -38,7 +38,7 @@ RISK_LEVELS = {
 
 # Display Constants
 MAX_CARD_NAME_LENGTH = max(len(title) for title in DECK_REFERENCE)
-CARD_HORIZ = MAX_CARD_NAME_LENGTH + 2
+SHORT_CARD_NAME_LENGTH = 10
 BANNER_LENGTH = 80
 BANNER_FILL_CHAR = '-'
 SEPARATOR_BAR = '=' * BANNER_LENGTH
@@ -46,6 +46,7 @@ HIDDEN_CARD = '?????'
 AI_DELAY = 1
 END_ROUND_DELAY = 1
 PLAYER_NAME = "Player 1"
+MAX_CARDS_ON_SCREEN = 4
 
 # Gameplay Constants
 ROUNDS_TO_PLAY = 5
@@ -67,20 +68,20 @@ round_values = {}
 def init_new_game():
     '''
     Initiates new game values
-    Returns None
     '''
     game_values['num_players'] = 0
     game_values['players'] = []
     game_values['error_messages'] = []
     game_values['rounds_played'] = 0
     game_values['round_winners'] = {}
+    game_values['card_length'] = MAX_CARD_NAME_LENGTH
+    game_values['card_horiz'] = MAX_CARD_NAME_LENGTH + 2
     determine_number_of_players()
     initialize_players()
 
 def init_new_round():
     '''
     Initializes game attributes per round
-    Returns None
     '''
     round_values['deck'] = list(DECK_REFERENCE.keys())
     round_values['busted_players'] = []
@@ -113,9 +114,8 @@ def reset_players():
         player['turn_ended'] = False
 
 def play_game():
-    '''
-    Game play loop
-    '''
+    'Game play loop'
+
     init_new_game()
     while True:
         play_new_table()
@@ -128,10 +128,8 @@ def play_game():
             break
 
 def play_new_table():
-    '''
-    Runs the game
-    Returns None
-    '''
+    'Runs the game'
+
     init_new_round()
     deal_cards()
     play_rounds()
@@ -146,7 +144,6 @@ def play_new_table():
 def play_rounds():
     '''
     Goes through each player and plays their round
-    Returns None
     '''
     for player in game_values['players']:
         clear_screen()
@@ -158,7 +155,6 @@ def play_rounds():
 def play_round(player):
     '''
     Plays the round of the player passed
-    Returns None
     '''
     while not player['turn_ended']:
         clear_screen()
@@ -188,7 +184,6 @@ def determine_number_of_players():
     '''
     Asks for how many players will play
     Loads that integer into game_values['num_players']
-    Returns None
     '''
     display_banner("Number of Players")
     while True:
@@ -200,20 +195,19 @@ def determine_number_of_players():
             break
         game_values['error_messages'].append('Invalid entry please try again')
     # forces min to be 1 and max to be 5
-    user_input = int(user_input) + 1
+    dealer = 1
+    user_input = int(user_input) + dealer
     ai_players = max(user_input, 1)
-    ai_players = min(ai_players, MAX_AI_PLAYERS)
+    ai_players = min(ai_players, MAX_AI_PLAYERS + dealer)
     game_values['num_players'] = ai_players
-    if user_input > MAX_AI_PLAYERS or user_input < 1:
+    if user_input > (MAX_AI_PLAYERS + dealer) or user_input < 1:
         print("You entered a value outside the acceptable range.")
         print(F"Computer players has been set to {ai_players}")
         enter_to_continue()
 
 def initialize_players():
-    '''
-    Adds a player's information to the game_values['players'] list
-    Returns None
-    '''
+    "Adds a player's information to the game_values['players'] list"
+
     for i in range(0, game_values['num_players']):
         player = {}
         initialize_general_player_data(player, i)
@@ -226,38 +220,30 @@ def initialize_players():
         game_values['players'].append(player)
 
 def initialize_general_player_data(player, player_num):
-    '''
-    Initializes general attribues of all players
-    Returns none
-    '''
+    'Initializes general attribues of all players'
+
     player['winning_rounds'] = []
     player['winning_hands'] = []
     player['winning_scores'] = []
     player['number'] = player_num
 
 def initialize_dealer_player_specifics(player):
-    '''
-    Initializes the dealer player
-    Returns none
-    '''
+    'Initializes the dealer player'
+
     player['name'] = 'Dealer'
-    player['type'] = 'dealer'
+    player['type'] = 'ai'
     player['risk_level'] = 'low'
 
 def initialize_ai_player_specifics(player, player_num):
-    '''
-    Initializes an AI player
-    Returns none
-    '''
+    'Initializes an AI player'
+
     player['name'] = F"AI {player_num}"
     player['type'] = 'ai'
     player['risk_level'] = random.choice(list(RISK_LEVELS))
 
 def initialize_user_player_specifics(player):
-    '''
-    Initializes data for User player
-    Returns None
-    '''
+    'Initializes data for User player'
+
     player['name'] = PLAYER_NAME
     player['type'] = 'human'
     player['risk_level'] = 'user'
@@ -270,7 +256,6 @@ def evaluate_results():
     '''
     Evaluates the winners of the round
     Updates player and game object
-    Returns None
     '''
     update_player_scores()
     round_values['winning_score'] = winning_score()
@@ -283,7 +268,6 @@ def evaluate_winners():
     '''
     Evaluates who won the round
     Appends winner's record to record_values['winners']
-    Returns None
     '''
     round_values['winners'].extend([
             player for player in game_values['players']
@@ -378,7 +362,6 @@ def deal_cards():
     '''
     Deals initial 2 cards to each player
     Calculates
-    Returns None
     '''
     for _ in range(2):
         for player in game_values['players']:
@@ -388,7 +371,6 @@ def deal_card_from_deck(player):
     '''
     Puts a card from the deck into a player's hand
     Updates player's hand information
-    Returns None
     '''
     card = take_card_from_deck()
     update_player_hand_info(player, card)
@@ -402,14 +384,12 @@ def take_card_from_deck():
 def hit(player):
     '''
     Pops a card from the deck and returns that card
-    Returns None
     '''
     deal_card_from_deck(player)
 
 def shuffle_deck():
     '''
     Shuffles the array of deck cards
-    Returns None
     '''
     random.shuffle(round_values['deck'])
 
@@ -463,7 +443,6 @@ def update_player_wins(player):
     '''
     Part of evaluate_rankings() function
     Updates a player's winning data if they won a round
-    Returns None
     '''
     player['winning_rounds'].append(current_round())
     player['winning_scores'].append(player['score'])
@@ -479,7 +458,6 @@ def update_player_hand_info(player, card):
     '''
     Adds card to player's hand
     Updates hand calculated value
-    Returns None
     '''
     player['hand'].append(card)
     player['hand_values'].append(DECK_REFERENCE[card])
@@ -513,21 +491,18 @@ def update_has_busted(player):
 def update_hand_value(player):
     '''
     Recalculates the sum of values in a player's hand
-    Returns None
     '''
     player['hand_value'] = sum(player['hand_values'][:])
 
 def update_alt_hand_value(player):
     '''
     Recalculates the sum of alternate values in a player's hand
-    Returns None
     '''
     player['alt_hand_value'] = sum(player['alt_hand_values'][:])
 
 def update_public_hand_value(player):
     '''
     Recalculates the sum of publicly displayed values in a player's hand
-    Returns None
     '''
     player['public_hand_value'] = sum(player['hand_values'][1:])
 
@@ -535,7 +510,6 @@ def update_alt_public_hand_value(player):
     '''
     Recalculates the sum of alternate publicly displayed
         values in a player's hand
-    Returns None
     '''
     player['alt_public_hand_value'] = sum(player['alt_hand_values'][1:])
 
@@ -549,7 +523,6 @@ def update_alt_hand_values_list(player):
     '''
     Checks for any values of 11 (Ace value) and replaces it with a value of 1
     Stores values in alternate data structure in player's info dictionary
-    Returns None
     '''
     try:
         idx = player['hand_values'].index(11)
@@ -632,7 +605,6 @@ def display_error_messages():
     '''
     Prints error messages
     Clears error messages
-    Returns None
     '''
     for message in game_values['error_messages']:
         print(message)
@@ -641,7 +613,6 @@ def display_error_messages():
 def display_ai_hit(player):
     '''
     Displays slow progression of AI play for user experience
-    Returns None
     '''
     print(F"{player['name']} is Deciding")
     delay(AI_DELAY)
@@ -652,7 +623,6 @@ def display_ai_hit(player):
 def display_ai_stay(player):
     '''
     Displays slow progression of AI play for user experience
-    Returns None
     '''
     clear_screen()
     display_banner(F"{player['name']} Round")
@@ -667,7 +637,6 @@ def display_table():
     Loops through players
     Displays the players hands on the terminal
     Displays actual scores for player 1, and public scores for other players
-    Returns None
     '''
     display_banner(F"Round {current_round()} BlackJack Table")
     for player in game_values['players']:
@@ -678,7 +647,6 @@ def display_rankings():
     Loops through players
     Displays the players hands on the terminal
     Displays actual scores for player 1, and public scores for other players
-    Returns None
     '''
     for player in round_values['rankings']:
         display_player(player)
@@ -686,10 +654,10 @@ def display_rankings():
 def display_player(player):
     '''
     Displays a players stats on the table
-    Returns None
     '''
     new_line()
     display_header(player['name'])
+    determine_card_format(player)
     print(formatted_card_display_string(player))
     display_player_hand_value(player)
     if is_round_over() and not round_values['round_complete']:
@@ -706,7 +674,6 @@ def display_turn_status(player):
 def display_player_hand_value(player):
     '''
     Prints Hand Value based on Player number and round play
-    Returns None
     '''
     if is_round_in_play():
         if player['type'] == 'human':
@@ -719,7 +686,6 @@ def display_player_hand_value(player):
 def display_total_hand_value(player):
     '''
     Prints total hand value
-    Returns None
     '''
     print(F"Hand Value: {player['hand_value']}")
     if player['has_alt_hand_value']:
@@ -729,7 +695,6 @@ def display_total_hand_value(player):
 def display_total_score(player):
     '''
     Prints total hand value
-    Returns None
     '''
     print(F"Score: {player['score']}")
     display_bust_status(player)
@@ -737,7 +702,6 @@ def display_total_score(player):
 def display_alternate_hand_value(player, public = False):
     '''
     Displays alternate hand value
-    Returns None
     '''
     if public:
         print(F"Alternate Public Ace Hand Value: {player['alt_public_hand_value']}")
@@ -747,7 +711,6 @@ def display_alternate_hand_value(player, public = False):
 def display_bust_status(player):
     '''
     Displays bust if player busts, or nothing if they didn't bust
-    Returns None
     '''
     highlight_bar = '=' * 10
     if player['has_busted']:
@@ -756,7 +719,6 @@ def display_bust_status(player):
 def display_public_hand_value(player):
     '''
     Prints public hand value (hides first card value)
-    Returns None
     '''
     print(F"Public Hand Value: {player['public_hand_value']}")
     if player['has_alt_hand_value'] and not is_first_card_an_ace(player):
@@ -765,7 +727,6 @@ def display_public_hand_value(player):
 def display_welcome_message():
     '''
     Displays welcome screen
-    Returns None
     '''
     clear_screen()
     display_banner('Welcome to 21 Black Jack!')
@@ -784,7 +745,6 @@ def display_welcome_message():
 def display_exit_message():
     '''
     Displays exit message
-    Returns None
     '''
     new_line()
     display_banner('Game Over')
@@ -804,9 +764,7 @@ def formatted_rounds_played_text(num):
 
 
 def formatted_card_display_string(player):
-    '''
-    Returns formatted string for card display
-    '''
+    'Returns formatted string for card display'
     formatted_hand = generate_card_line(player, card_line_1()) + \
                      generate_card_line(player, card_line_2()) + \
                      generate_card_title_line(player) + \
@@ -814,9 +772,7 @@ def formatted_card_display_string(player):
     return formatted_hand
 
 def generate_card_line(player, text):
-    '''
-    Returns line of hand for display
-    '''
+    'Returns line of hand for display'
     spacer = '  '
     line = ''
     for _ in range(player['cards_in_hand'] - 1):
@@ -827,19 +783,33 @@ def generate_card_line(player, text):
     return line
 
 def generate_card_title_line(player):
-    '''
-    Returns line of card titles for display
-    '''
+    'Returns line of card titles for display'
+
     spacer = '  '
-    line = card_line_3(first_card_display(player)) + spacer
+    hand = format_cards_in_hand(player)
+    line = card_line_3(first_card_display(player, hand)) + spacer
     for i in range(1, player['cards_in_hand'] - 1):
-        line += card_line_3(player['hand'][i])
+        line += card_line_3(hand[i])
         line += spacer
-    line += card_line_3(player['hand'][-1])
+    line += card_line_3(hand[-1])
     line += '\n'
     return line
 
-def first_card_display(player):
+def format_cards_in_hand(player):
+    'Shortens card names in hand'
+    if player['cards_in_hand'] > MAX_CARDS_ON_SCREEN:
+        return [ F"{card_shorthand(card)}" for card in player['hand']]
+    return player['hand']
+
+def card_shorthand(card):
+    'Shortens name of card'
+    value = card.split()[0]
+    suite = card.split()[2]
+    if value != '10':
+        value = value[0]
+    return F"{value}o{suite[0]}"
+
+def first_card_display(player, hand):
     '''
     Returns ???? for first card (face down card) for everyone but player 1
     Returns title of first card for player one (will show face up for player 1)
@@ -847,32 +817,39 @@ def first_card_display(player):
     if is_round_in_play() and player['type'] != 'human':
         card_title = HIDDEN_CARD
     else:
-        card_title = player['hand'][0]
+        card_title = hand[0]
     return card_title
 
 def card_line_1():
-    '''
-    Returns line 1 of card display
-    '''
-    return ' ' + ('_' * CARD_HORIZ) + ' '
+    'Returns line 1 of card display'
+    return ' ' + ('_' * game_values['card_horiz']) + ' '
 
 def card_line_2():
     '''
     Returns line 2 of card display
     '''
-    return '|' + (' ' * CARD_HORIZ) + '|'
+    return '|' + (' ' * game_values['card_horiz']) + '|'
 
 def card_line_3(card_title):
     '''
     Returns line 3 of card display
     '''
-    return '| ' +  card_title.center(MAX_CARD_NAME_LENGTH) + ' |'
+    return '| ' +  card_title.center(game_values['card_length']) + ' |'
 
 def card_line_4():
     '''
     Returns bottom of card border
     '''
-    return '|' + ('_' * CARD_HORIZ) + '|'
+    return '|' + ('_' * game_values['card_horiz']) + '|'
+
+def determine_card_format(player):
+    'Adjusts card length for cards in hand to fit on the screen'
+    if player['cards_in_hand'] > MAX_CARDS_ON_SCREEN:
+        game_values['card_length'] = SHORT_CARD_NAME_LENGTH
+        game_values['card_horiz'] = SHORT_CARD_NAME_LENGTH + 2
+    else:
+        game_values['card_length'] = MAX_CARD_NAME_LENGTH
+        game_values['card_horiz'] = MAX_CARD_NAME_LENGTH + 2
 
 # ==================
 # Predicate Functions
@@ -883,7 +860,7 @@ def is_risk_level_exceeded(player):
     '''
     Returns True if AI or Dealer exceeded their risk level
     '''
-    if player['type'] != 'human' and player['hand_value'] <= RISK_LEVELS[player['risk_level']]:
+    if player['type'] == 'ai' and player['hand_value'] > RISK_LEVELS[player['risk_level']]:
         return True
     return False
 
@@ -958,21 +935,18 @@ def enter_to_continue():
 def clear_screen():
     '''
     Clears terminal screen
-    Returns None
     '''
     os.system('clear')
 
 def delay(sec):
     '''
     Pauses for sec number of seconds
-    Returns None
     '''
     os.system(F"sleep {sec}")
 
 def new_line():
     '''
     Prints a new line to the screen
-    Returns None
     '''
     print('')
 
