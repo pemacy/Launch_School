@@ -5,7 +5,6 @@
 import random
 import os
 import math
-import pdb
 
 # ==================
 # Constants
@@ -54,6 +53,8 @@ ROUNDS_NEEDED_TO_WIN = math.ceil(ROUNDS_TO_PLAY / 2)
 BUST_VALUE = 22
 MAX_AI_PLAYERS = 4
 VALID_ROUND_PLAY_SELECTIONS = ['hit', 'stay', 'h', 's']
+HIGH_ACE_VALUE = 11
+LOW_ACE_VALUE = 1
 
 # ==================
 # GLOBAL_VARIABLES
@@ -102,14 +103,7 @@ def reset_players():
         player['hand'] = []
         player['hand_values'] = []
         player['alt_hand_values'] = []
-        player['cards_in_hand'] = 0
-        player['hand_value'] = 0
-        player['alt_hand_value'] = 0
-        player['public_hand_value'] = 0
-        player['alt_public_hand_value'] = 0
         player['score'] = 0
-        player['has_alt_hand_value'] = False
-        player['has_busted'] = False
         player['hit_me'] = True
         player['turn_ended'] = False
 
@@ -170,6 +164,8 @@ def play_round(player):
             else:
                 hit(player)
         else:
+            if is_risk_level_exceeded(player):
+                break
             hit(player)
             display_ai_hit(player)
         evaluate_if_turn_ended(player)
@@ -194,13 +190,17 @@ def determine_number_of_players():
         if user_input.isdigit():
             break
         game_values['error_messages'].append('Invalid entry please try again')
+    set_num_of_players(int(user_input))
+
+def set_num_of_players(num):
+    'Sets the number of AI Players'
     # forces min to be 1 and max to be 5
-    dealer = 1
-    user_input = int(user_input) + dealer
-    ai_players = max(user_input, 1)
-    ai_players = min(ai_players, MAX_AI_PLAYERS + dealer)
-    game_values['num_players'] = ai_players
-    if user_input > (MAX_AI_PLAYERS + dealer) or user_input < 1:
+    user_players = 1
+    ai_players = max(num, 1)
+    ai_players = min(ai_players, MAX_AI_PLAYERS)
+    game_values['ai_players'] = num
+    game_values['num_players'] = ai_players + user_players
+    if num > (MAX_AI_PLAYERS) or num < 1:
         print("You entered a value outside the acceptable range.")
         print(F"Computer players has been set to {ai_players}")
         enter_to_continue()
@@ -307,38 +307,28 @@ def sorted_players_by_score_descending():
     return sorted(game_values['players'], key = return_score_for_rankings, reverse = True)
 
 def return_score_for_rankings(player):
-    '''
-    Returns the score of the player passed
-    '''
+    '''Returns the score of the player passed'''
     score = player['score']
-    if player['has_busted']:
+    if has_busted(player):
         score *= -1
     return score
 
-def evaluate_player_score(player):
-    '''
-    Evaluates the player's score
-    Returns score value
-    '''
-    if not player['has_alt_hand_value']:
-        return player['hand_value']
-    if player['hand_value'] > player['alt_hand_value'] and \
-            player['hand_value'] < BUST_VALUE:
-        return player['hand_value']
-    return player['alt_hand_value']
+def evaluate_player_score(p):
+    '''Evaluates the player's score
+    Returns score value'''
+    if not has_alt_hand_value(p):
+        return hand_value(p)
+    if (hand_value(p) > alt_hand_value(p)) and (hand_value(p) < BUST_VALUE):
+        return hand_value(p)
+    return alt_hand_value(p)
 
 def evaluate_if_turn_ended(player):
-    '''
-    Updates a player's turn_ended flag if their turn is over
-    '''
-    player['turn_ended'] =  is_risk_level_exceeded(player) or \
-                            has_busted(player) or \
+    '''Updates a player's turn_ended flag if their turn is over'''
+    player['turn_ended'] =  has_busted(player) or \
                             wants_to_end_turn(player)
 
 def save_winners_to_game_values():
-    '''
-    Returns data to be used when displaying winners
-    '''
+    '''Returns data to be used when displaying winners'''
     game_values['round_winners'].setdefault(current_round(), [])
     if round_values['winners']:
         for player in round_values['winners']:
@@ -416,9 +406,7 @@ def ask_to_play_another_round():
     return selection
 
 def current_round():
-    '''
-    Returns current round number
-    '''
+    'Returns current round number'
     return game_values['rounds_played']
 
 # ==================
@@ -426,111 +414,131 @@ def current_round():
 # ==================
 
 def update_player_scores():
-    '''
-    Updates the player data with their round score
-    '''
+    'Updates the player data with their round score'
     for player in game_values['players']:
         player['score'] = evaluate_player_score(player)
 
 def update_winner_records():
-    '''
-    Updates the winners with winning record data
-    '''
+    'Updates the winners with winning record data'
     for player in round_values['winners']:
         update_player_wins(player)
 
 def update_player_wins(player):
-    '''
-    Part of evaluate_rankings() function
-    Updates a player's winning data if they won a round
-    '''
+    ''' Part of evaluate_rankings() function
+        Updates a player's winning data if they won a round '''
     player['winning_rounds'].append(current_round())
     player['winning_scores'].append(player['score'])
     player['winning_hands'].append(player['hand'])
 
 def update_rounds_played():
-    '''
-    Updates rounds played in game_values
-    '''
+    'Updates rounds played in game_values'
     game_values['rounds_played'] += 1
 
 def update_player_hand_info(player, card):
-    '''
-    Adds card to player's hand
-    Updates hand calculated value
-    '''
+    ''' Adds card to player's hand
+        Updates hand calculated value '''
     player['hand'].append(card)
     player['hand_values'].append(DECK_REFERENCE[card])
-    update_alt_hand_values_list(player)
-    update_hand_value(player)
-    update_alt_hand_value(player)
-    update_public_hand_value(player)
-    update_alt_public_hand_value(player)
-    update_has_alt_hand_value(player)
-    update_has_busted(player)
-    update_cards_in_hand(player)
+    update_alt_hand_values(player)
 
-def update_has_alt_hand_value(player):
-    '''
-    If the player has an ace in their hand returns True
-    If not it returns False
-    '''
-    if player['has_alt_hand_value']:
-        return
-    if player['hand_value'] != player['alt_hand_value']:
-        player['has_alt_hand_value'] = True
+def update_alt_hand_values(player):
+    ''' Checks for any values of 11 (Ace value) and replaces it with a value of 1
+    Stores values in alternate data structure in player's info dictionary'''
+    player['alt_hand_values'] = determine_alt_values(player)
 
-def update_has_busted(player):
-    '''
-    If the player an alt hand value > 21 returns True
-    If not it returns False
-    '''
-    if player['alt_hand_value'] > 21:
-        player['has_busted'] = True
+# ==================
+# Player Query Functions
+# ==================
 
-def update_hand_value(player):
-    '''
-    Recalculates the sum of values in a player's hand
-    '''
-    player['hand_value'] = sum(player['hand_values'][:])
+def public_hand(p):
+    'Returns only the face up cards in the hand'
+    return p['hand'][1:]
 
-def update_alt_hand_value(player):
-    '''
-    Recalculates the sum of alternate values in a player's hand
-    '''
-    player['alt_hand_value'] = sum(player['alt_hand_values'][:])
+def number_of_cards_in_hand(p):
+    'Returns number of cards in hand'
+    return len(p['hand'])
 
-def update_public_hand_value(player):
-    '''
-    Recalculates the sum of publicly displayed values in a player's hand
-    '''
-    player['public_hand_value'] = sum(player['hand_values'][1:])
+def hand_value(p):
+    'Returns hand value of player'
+    return sum(p['hand_values'])
 
-def update_alt_public_hand_value(player):
-    '''
-    Recalculates the sum of alternate publicly displayed
-        values in a player's hand
-    '''
-    player['alt_public_hand_value'] = sum(player['alt_hand_values'][1:])
+def public_hand_value(p):
+    'Returns public hand value of player'
+    return sum(p['hand_values'][1:])
 
-def update_cards_in_hand(player):
-    '''
-    Updates the tally of cards in a player's hand
-    '''
-    player['cards_in_hand'] += 1
+def alt_hand_value(p):
+    'Returns alt hand value of player'
+    return sum(p['alt_hand_values'])
 
-def update_alt_hand_values_list(player):
-    '''
-    Checks for any values of 11 (Ace value) and replaces it with a value of 1
-    Stores values in alternate data structure in player's info dictionary
-    '''
-    try:
-        idx = player['hand_values'].index(11)
-    except ValueError:
-        player['alt_hand_values'] = player['hand_values']
-    else:
-        player['alt_hand_values'] = player['hand_values'][:]
-        player['alt_hand_values'][idx] = 1
+def alt_public_hand_value(p):
+    'Returns public hand value of player'
+    return sum(p['alt_hand_values'][1:])
+
+def has_alt_hand_value(p):
+    'Returns True if player has an alternate hand value due to aces'
+    return hand_value(p) != alt_hand_value(p) and bool(aces_in_hand(p))
+
+def has_alt_public_hand_value(p):
+    'Returns True if player has an alternate public hand value due to aces'
+    return public_hand_value(p) != alt_public_hand_value(p)
+
+def aces_in_hand(p):
+    'Updates the number of aces in a players hand'
+    ace_count = 0
+    for card in p['hand']:
+        if 'Ace' in card:
+            ace_count += 1
+    return ace_count
+
+# ==================
+# Player Alt Hand Values Functions
+# ==================
+
+def determine_alt_values(player):
+    'Returns a list of alternate valid combinations of Ace Vales, or []'
+    if number_of_cards_in_hand(player) < 2:
+        return []
+    alt_combos = alt_hand_values_combinations(player)
+    best_combo_idx = determine_best_valid_alt_combo_idx(alt_combos)
+    if best_combo_idx:
+        return alt_combos[best_combo_idx[0]]
+    return []
+
+def alt_hand_values_combinations(player):
+    'Returns all hand values given one or more Aces are in the hand'
+    temp_hand = player['hand_values'][:]
+    alt_combinations = []
+    for idx in ace_indexes(player):
+        temp_hand = temp_hand[:]
+        temp_hand[idx] = 1
+        alt_combinations.append(temp_hand)
+    return alt_combinations
+
+def determine_best_valid_alt_combo_idx(alt_combos):
+    'Returns the index for the best Ace Score given aces can be 1 or 11'
+    scores = [ (sum(combo), i) for i, combo in enumerate(alt_combos) ]
+    sorted_filtered_scores = sorted([ (score, i) for score, i in scores if score < BUST_VALUE ])
+    if sorted_filtered_scores:
+        best_idx = sorted_filtered_scores[-1][1]
+        return [best_idx]
+    return []
+
+def determine_best_ace_score_and_combo_idx(ace_combinations):
+    'Returns highest public score with Aces in hand <= 21'
+    scores = [ (sum(combo[1:]), i) for i, combo in enumerate(ace_combinations) ]
+    return max( (score, i) for i, score in scores if score < BUST_VALUE )[-1]
+
+def ace_indexes(player):
+    'Returns list of indexes of aces in hand'
+    indexes = []
+    for idx, card in enumerate(player['hand']):
+        if is_card_ace(card):
+            indexes.append(idx)
+    return indexes
+
+def is_card_ace(card):
+    'Return True if card is an ace'
+    return 'Ace' in card
 
 # ==================
 # Display Functions
@@ -582,10 +590,13 @@ def display_player_amounts_won():
     Displays how many times each player has won
     '''
     display_banner("Total Wins By Player")
-    for player in game_values['players']:
+    for player in sorted(game_values['players'], key=sort_amounts_won, reverse=True):
         rounds_won = len(player['winning_rounds'])
         print(F"\t{player['name']} won {formatted_rounds_played_text(rounds_won)}")
 
+def sort_amounts_won(player):
+    'Returns a tuple of (amount won, player number) for sorting by rounds won'
+    return (len(player['winning_rounds']), player['number'] * -1)
 
 def display_banner(banner):
     '''
@@ -660,7 +671,7 @@ def display_player(player):
     determine_card_format(player)
     print(formatted_card_display_string(player))
     display_player_hand_value(player)
-    if is_round_over() and not round_values['round_complete']:
+    if is_player_turn_ended(player) and not is_round_complete():
         display_turn_status(player)
 
 def display_turn_status(player):
@@ -683,51 +694,39 @@ def display_player_hand_value(player):
         return
     display_total_score(player)
 
-def display_total_hand_value(player):
-    '''
-    Prints total hand value
-    '''
-    print(F"Hand Value: {player['hand_value']}")
-    if player['has_alt_hand_value']:
-        display_alternate_hand_value(player)
-    display_bust_status(player)
+def display_total_hand_value(p):
+    '''Prints total hand value'''
+    print(F"Hand Value: {hand_value(p)}")
+    if has_alt_hand_value(p):
+        display_alternate_hand_value(p)
+    display_bust_status(p)
 
 def display_total_score(player):
-    '''
-    Prints total hand value
-    '''
+    '''Prints total hand score'''
     print(F"Score: {player['score']}")
     display_bust_status(player)
 
-def display_alternate_hand_value(player, public = False):
-    '''
-    Displays alternate hand value
-    '''
+def display_alternate_hand_value(p, public = False):
+    '''Displays alternate hand value'''
     if public:
-        print(F"Alternate Public Ace Hand Value: {player['alt_public_hand_value']}")
+        print(F"Alternate Public Ace Hand Value: {alt_public_hand_value(p)}")
     else:
-        print(F"Alternate Ace Hand Value: {player['alt_hand_value']}")
+        print(F"Alternate Ace Hand Value: {alt_hand_value(p)}")
 
-def display_bust_status(player):
-    '''
-    Displays bust if player busts, or nothing if they didn't bust
-    '''
+def display_bust_status(p):
+    '''Displays bust if player busts, or nothing if they didn't bust'''
     highlight_bar = '=' * 10
-    if player['has_busted']:
-        print(highlight_bar, F"{player['name']} BUSTS", highlight_bar)
+    if has_busted(p):
+        print(highlight_bar, F"{p['name']} BUSTS", highlight_bar)
 
-def display_public_hand_value(player):
-    '''
-    Prints public hand value (hides first card value)
-    '''
-    print(F"Public Hand Value: {player['public_hand_value']}")
-    if player['has_alt_hand_value'] and not is_first_card_an_ace(player):
-        display_alternate_hand_value(player, public = True)
+def display_public_hand_value(p):
+    '''Prints public hand value (hides first card value)'''
+    print(F"Public Hand Value: {public_hand_value(p)}")
+    if has_alt_hand_value(p):
+        display_alternate_hand_value(p, public = True)
 
 def display_welcome_message():
-    '''
-    Displays welcome screen
-    '''
+    '''Displays welcome screen'''
     clear_screen()
     display_banner('Welcome to 21 Black Jack!')
     print('Game Rules:')
@@ -771,35 +770,35 @@ def formatted_card_display_string(player):
                      generate_card_line(player, card_line_4())
     return formatted_hand
 
-def generate_card_line(player, text):
+def generate_card_line(p, text):
     'Returns line of hand for display'
     spacer = '  '
     line = ''
-    for _ in range(player['cards_in_hand'] - 1):
+    for _ in range(number_of_cards_in_hand(p) - 1):
         line += text
         line += spacer
     line += text
     line += '\n'
     return line
 
-def generate_card_title_line(player):
+def generate_card_title_line(p):
     'Returns line of card titles for display'
 
     spacer = '  '
-    hand = format_cards_in_hand(player)
-    line = card_line_3(first_card_display(player, hand)) + spacer
-    for i in range(1, player['cards_in_hand'] - 1):
+    hand = format_cards_in_hand(p)
+    line = card_line_3(first_card_display(p, hand)) + spacer
+    for i in range(1, number_of_cards_in_hand(p) - 1):
         line += card_line_3(hand[i])
         line += spacer
     line += card_line_3(hand[-1])
     line += '\n'
     return line
 
-def format_cards_in_hand(player):
+def format_cards_in_hand(p):
     'Shortens card names in hand'
-    if player['cards_in_hand'] > MAX_CARDS_ON_SCREEN:
-        return [ F"{card_shorthand(card)}" for card in player['hand']]
-    return player['hand']
+    if number_of_cards_in_hand(p) > MAX_CARDS_ON_SCREEN:
+        return [ F"{card_shorthand(card)}" for card in p['hand']]
+    return p['hand']
 
 def card_shorthand(card):
     'Shortens name of card'
@@ -842,9 +841,9 @@ def card_line_4():
     '''
     return '|' + ('_' * game_values['card_horiz']) + '|'
 
-def determine_card_format(player):
+def determine_card_format(p):
     'Adjusts card length for cards in hand to fit on the screen'
-    if player['cards_in_hand'] > MAX_CARDS_ON_SCREEN:
+    if number_of_cards_in_hand(p) > MAX_CARDS_ON_SCREEN:
         game_values['card_length'] = SHORT_CARD_NAME_LENGTH
         game_values['card_horiz'] = SHORT_CARD_NAME_LENGTH + 2
     else:
@@ -857,66 +856,56 @@ def determine_card_format(player):
 
 
 def is_risk_level_exceeded(player):
-    '''
-    Returns True if AI or Dealer exceeded their risk level
-    '''
-    if player['type'] == 'ai' and player['hand_value'] > RISK_LEVELS[player['risk_level']]:
+    '''Returns True if AI or Dealer exceeded their risk level'''
+    if player['type'] == 'ai' and hand_value(player) > RISK_LEVELS[player['risk_level']]:
         return True
     return False
 
-def has_busted(player):
-    '''
-    Returns True or False if the player has busted
-    '''
-    return player['has_busted']
+def has_busted(p):
+    'Returns True if player busted'
+    if hand_value(p) >= BUST_VALUE:
+        if alt_hand_value(p) and alt_hand_value(p) < BUST_VALUE:
+            return False
+        return True
+    return False
 
 def wants_to_end_turn(player):
-    '''
-    Always False for AI/Dealer
-    For User True if they decided to stay
-    '''
+    '''Always False for AI/Dealer
+    For User True if they decided to stay'''
     if player['type'] == 'human':
         return not player['hit_me']
     return False
 
 def is_round_in_play():
-    '''
-    Returns whether a round is currently in play or not
-    '''
+    '''Returns whether a round is currently in play or not'''
     return not round_values['round_complete']
 
-def is_round_over():
-    '''
-    Returns whether a round is currently in play or not
-    '''
+def is_player_turn_ended(player):
+    '''Returns whether a round is currently in play or not'''
+    return player['turn_ended']
+
+def is_round_complete():
+    'Returns status if round is complete'
     return round_values['round_complete']
 
 def has_everyone_busted():
-    '''
-    Returns True if all players busted, False otherwise
-    '''
-    return all(player['has_busted'] for player in game_values['players'])
+    '''Returns True if all players busted, False otherwise'''
+    return all(has_busted(player) for player in game_values['players'])
 
 def is_dealer_winner():
-    '''
-    Returns True if dealer won
-    False otherwise
-    '''
+    '''Returns True if dealer won
+    False otherwise'''
     if has_everyone_busted():
         return False
     return round_values['winners'][0]['name'] == 'Dealer'
 
 def is_first_card_an_ace(player):
-    '''
-    Returns True if first card is an Ace
-    Important for not displaying alternate hand value
-    '''
+    '''Returns True if first card is an Ace
+    Important for not displaying alternate hand value'''
     return 'Ace' in player['hand'][0]
 
 def has_all_rounds_played():
-    '''
-    Returns True if all the planned rounds have been played
-    '''
+    '''Returns True if all the planned rounds have been played'''
     return game_values['rounds_played'] == ROUNDS_TO_PLAY
 
 # ==================
@@ -924,36 +913,25 @@ def has_all_rounds_played():
 # ==================
 
 def enter_to_continue():
-    '''
-    Press enter to continue
-    Return None
-    '''
+    '''Press enter to continue'''
     new_line()
     display_banner('-')
     input('\nPress enter to continue: ')
 
 def clear_screen():
-    '''
-    Clears terminal screen
-    '''
+    '''Clears terminal screen'''
     os.system('clear')
 
 def delay(sec):
-    '''
-    Pauses for sec number of seconds
-    '''
+    '''Pauses for sec number of seconds'''
     os.system(F"sleep {sec}")
 
 def new_line():
-    '''
-    Prints a new line to the screen
-    '''
+    '''Prints a new line to the screen'''
     print('')
 
 def print_separator_bar():
-    '''
-    Prints separator bar
-    '''
+    '''Prints separator bar'''
     print(SEPARATOR_BAR)
 
 # ==================
