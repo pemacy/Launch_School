@@ -165,5 +165,5 @@ class TwentyOne(UtilityMethods, Messages):
         for player in self.players:
             print(player,'\n')
 
-# t = TwentyOne()
-# t.play()
+t = TwentyOne()
+t.play()

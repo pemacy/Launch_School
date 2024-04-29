@@ -71,15 +71,15 @@ class Player(UtilityMethods):
     def human_str(self):
         money = 'Money: $' + str(self.money)
         return '\n'.join([ self.name,
-                                money,
-                                str(self.hand),
-                                str(self.hand.value) ])
+                            money,
+                            str(self.hand),
+                            F"Score: {str(self.hand.value) }"])
 
     def computer_str(self):
         hand, value = self.computer_str_values()
         return '\n'.join([ self.name,
                             str(hand),
-                            str(value) ])
+                            F"Score: {str(value)}" ])
 
     def computer_str_values(self):
         if not self.turn_complete:

@@ -69,7 +69,7 @@ class TestDisplayPlayer(unittest.TestCase):
         l5 = '|       |  |       |\n'
         l6 = '|     S |  |     H |\n'
         l7 = '+-------+  +-------+\n'
-        l8 = F"{self.p.hand.value}\n"
+        l8 = F"Score: {self.p.hand.value}\n"
         expected = l0 + l01 + l1 + l2 + l3 + l4 + l5 + l6 + l7 + l8
         print(self.p)
         assert mock_stdout.getvalue() == expected
@@ -89,7 +89,7 @@ class TestDisplayPlayer(unittest.TestCase):
         l5 = '|       |  |       |  |       |\n'
         l6 = '|     S |  |     H |  |     H |\n'
         l7 = '+-------+  +-------+  +-------+\n'
-        l8 = F"{self.p.hand.value}\n"
+        l8 = F"Score: {self.p.hand.value}\n"
         l9 = F"{self.p.name} has busted\n"
         expected = l0 + l01 + l1 + l2 + l3 + l4 + l5 + l6 + l7 + l8 + l9
         print(self.p)

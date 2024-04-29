@@ -60,17 +60,17 @@ class TestHandOneCard(unittest.TestCase):
 class TestHandTwoCards(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        c = Card(rank = 'Queen', suite = 'Spades')
-        c2 = Card(rank = '10', suite = 'Hearts')
+        c = Card(rank = 'Jack', suite = 'Diamonds')
+        c2 = Card(rank = '8', suite = 'Clubs')
         cls.h = Hand()
         cls.h.add_card(c)
         cls.h.add_card(c2)
 
     def test_hand_value(self):
-        assert self.h.value == 20
+        assert self.h.value == 18
 
     def test_optimized_ace_value(self):
-        assert self.h.optimized_ace_value() == 20
+        assert self.h.optimized_ace_value() == 18
 
     def test_ace_value_combos(self):
         assert self.h.ace_value_combos() == [[]]
@@ -79,7 +79,7 @@ class TestHandTwoCards(unittest.TestCase):
         assert self.h.ace_sum_combos() == [0]
 
     def test_non_ace_sum(self):
-        assert self.h.non_ace_sum() == 20
+        assert self.h.non_ace_sum() == 18
 
     def test_is_bust(self):
         assert self.h.is_bust() is False
@@ -88,11 +88,11 @@ class TestHandTwoCards(unittest.TestCase):
     def test_display_hand(self, mock_stdout):
         self.h.display()
         l1 = '+-------+  +-------+\n'
-        l2 = '| S     |  | H     |\n'
+        l2 = '| D     |  | C     |\n'
         l3 = '|       |  |       |\n'
-        l4 = '| Queen |  |   10  |\n'
+        l4 = '|  Jack |  |   8   |\n'
         l5 = '|       |  |       |\n'
-        l6 = '|     S |  |     H |\n'
+        l6 = '|     D |  |     C |\n'
         l7 = '+-------+  +-------+\n'
         expected = l1 + l2 + l3 + l4 + l5 + l6 + l7
         # print(expected, file = sys.stderr)
@@ -103,11 +103,11 @@ class TestHandTwoCards(unittest.TestCase):
     def test_str(self, mock_stdout):
         print(self.h)
         l1 = '+-------+  +-------+\n'
-        l2 = '| S     |  | H     |\n'
+        l2 = '| D     |  | C     |\n'
         l3 = '|       |  |       |\n'
-        l4 = '| Queen |  |   10  |\n'
+        l4 = '|  Jack |  |   8   |\n'
         l5 = '|       |  |       |\n'
-        l6 = '|     S |  |     H |\n'
+        l6 = '|     D |  |     C |\n'
         l7 = '+-------+  +-------+\n'
         expected = l1 + l2 + l3 + l4 + l5 + l6 + l7
         # print(expected, file = sys.stderr)
