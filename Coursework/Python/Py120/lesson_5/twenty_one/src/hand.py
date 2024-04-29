@@ -71,7 +71,7 @@ class Hand:
         return len([1 for card in self.cards if card.rank == 'Ace'])
 
     # =============================
-    # Display
+    # Magic Methods
     # =============================
     def __str__(self):
         return '\n'.join([self.line1_str(),
@@ -82,6 +82,18 @@ class Hand:
                           self.line6_str(),
                           self.line7_str()])
 
+    # =============================
+    # Display
+    # =============================
+    def display(self):
+        print(self)
+
+    def display_hidden(self):
+        print(self.hidden())
+
+    # =============================
+    # Display Helper Methods
+    # =============================
     def hidden(self):
         return '\n'.join([self.line1_str(),
                           self.line2_str(True),
@@ -90,12 +102,6 @@ class Hand:
                           self.line5_str(),
                           self.line6_str(True),
                           self.line7_str()])
-
-    def display(self):
-        print(self)
-
-    def display_hidden(self):
-        print(self.hidden())
 
     def line1_str(self):
         template = '+' + 7 * '-' + '+'
