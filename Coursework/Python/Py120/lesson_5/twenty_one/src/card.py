@@ -22,6 +22,9 @@ class Card:
     def value(self):
         return self._value
 
+    # ==========================
+    # Query Methods
+    # ==========================
     def alt_value(self):
         if self.is_ace():
             return BlackjackConstants.ACE_ALT_VALUE
