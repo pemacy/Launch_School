@@ -140,10 +140,6 @@ class TwentyOne(UtilityMethods, Messages):
         self.new_line()
         self.human_player().display_gains_losses()
 
-    def winners_string(self, winner_lst):
-        player_names = [ player.name for player in winner_lst ]
-        return ' and '.join(player_names)
-
     def display_round_results(self):
         self.clear_screen()
         self.display_round_banner()
@@ -164,6 +160,13 @@ class TwentyOne(UtilityMethods, Messages):
     def display_hands(self):
         for player in self.players:
             print(player,'\n')
+
+    # =============================
+    # Display Helper Methods
+    # =============================
+    def winners_string(self, winner_lst):
+        player_names = [ player.name for player in winner_lst ]
+        return ' and '.join(player_names)
 
 t = TwentyOne()
 t.play()

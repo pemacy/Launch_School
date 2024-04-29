@@ -87,7 +87,7 @@ class Player(UtilityMethods):
         return(self.hand, self.hand.value)
 
     # ==========================
-    # Predicate Functions
+    # Predicate Methods
     # ==========================
     def should_hide_first_card(self):
         return not self.turn_complete and not self.is_human()
@@ -107,6 +107,9 @@ class Human(Player):
         self._risk_level = 'max'
         super().__init__('Player 1', self._risk_level)
 
+    # ==========================
+    # GamePlay Methods
+    # ==========================
     def play_round(self, deck, gameplay):
         while True:
             self.clear_screen()
@@ -130,9 +133,15 @@ class Human(Player):
                 break
             print('Incorrect input, please try again.')
 
+    # ==========================
+    #  Predicate Methods
+    # ==========================
     def is_playable(self):
         return self.money > 0 and self.money <= 10
 
+    # ==========================
+    #  Display Methods
+    # ==========================
     def display_gains_losses(self):
         if self.money > 5:
             print(F"You gained ${self.money - 5}!")
@@ -151,6 +160,9 @@ class Dealer(Computer):
         self._risk_level = 'medium'
         super().__init__('Dealer', self._risk_level)
 
+# ==========================
+#  Future Development
+# ==========================
 class AI(Computer):
     AI_NUM = 1
     def __init__(self):

@@ -8,6 +8,9 @@ class Deck:
         self.cards = []
         self.reset()
 
+    # ==========================
+    # GamePlay Methods
+    # ==========================
     def reset(self):
         self.cards.clear()
         for suite in BlackjackConstants.SUITES:

@@ -7,6 +7,9 @@ class Card:
         self._suite = kwargs['suite']
         self._value = BlackjackConstants.CARD_VALUE_TABLE[self.rank]
 
+    # ==========================
+    # Properties
+    # ==========================
     @property
     def rank(self):
         return self._rank
@@ -14,9 +17,6 @@ class Card:
     @property
     def suite(self):
         return self._suite
-
-    def suite_abr(self):
-        return self.suite[0]
 
     @property
     def value(self):
@@ -27,11 +27,20 @@ class Card:
             return BlackjackConstants.ACE_ALT_VALUE
         return self.value
 
+    # ==========================
+    # Predicate Methods
+    # ==========================
     def has_alt_value(self):
         return self.value != self.alt_value()
 
     def is_ace(self):
         return self.rank == 'Ace'
+
+    # ==========================
+    # Display Helper Methods
+    # ==========================
+    def suite_abr(self):
+        return self.suite[0]
 
     def hidden_suite_abr(self):
         return '?'

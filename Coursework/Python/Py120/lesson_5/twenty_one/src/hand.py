@@ -5,15 +5,12 @@ class Hand:
     def __init__(self):
         self._cards = []
 
+    # ==========================
+    # Properties
+    # ==========================
     @property
     def cards(self):
         return self._cards
-
-    def clear(self):
-        self._cards.clear()
-
-    def add_card(self, card):
-        self.cards.append(card)
 
     @property
     def value(self):
@@ -21,8 +18,20 @@ class Hand:
             return self.optimized_ace_value()
         return sum([card.value for card in self.cards])
 
+    # ==========================
+    # Query Methods
+    # ==========================
     def hidden_value(self):
         return sum([ card.value for card in self.cards[1:] ])
+
+    # ==========================
+    # GamePlay Methods
+    # ==========================
+    def clear(self):
+        self._cards.clear()
+
+    def add_card(self, card):
+        self.cards.append(card)
 
     # =============================
     # Predicate Methods
