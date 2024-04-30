@@ -10,7 +10,8 @@ class TwentyOne(UtilityMethods, Messages):
         self.deck = Deck()
         self.players = [Human(), Dealer()]
         self.game_play = True
-        self.rounds_played = 1
+        self.rounds_played = None
+        self.quit_early = False
         self.round_winners = {}
 
     # =============================
@@ -21,15 +22,20 @@ class TwentyOne(UtilityMethods, Messages):
         self.display_welcome_message()
         self.display_rules_message()
         self.enter_to_continue()
-        while self.game_play:
+        while True:
+            self.reset_game()
             self.play_rounds()
-            if self.game_play:
-                self.ask_play_again()
-        self.display_game_results()
+            if self.quit_early:
+                self.display_game_results()
+                break
+            self.display_fund_status()
+            self.display_game_results()
+            if not self.play_again():
+                break
         self.display_goodbye_message()
 
     def play_rounds(self):
-        while self.human_player().is_playable():
+        while self.is_human_playable():
             self.clear_screen()
             self.display_round_banner()
             self.initial_deal()
@@ -39,10 +45,10 @@ class TwentyOne(UtilityMethods, Messages):
             self.determine_round_winner()
             self.settle_bets()
             self.display_round_results()
-            self.ask_keep_playing()
-            if self.game_play:
-                self.reset_game()
-                self.rounds_played += 1
+            if self.human_not_playable():
+                break
+            if self.keep_playing():
+                self.reset_round()
             else:
                 break
 
@@ -62,10 +68,26 @@ class TwentyOne(UtilityMethods, Messages):
             self.enter_to_continue()
 
     def reset_game(self):
-        self.deck.reset()
-        for player in self.players:
-            player.reset()
+        self.rounds_played = 1
+        self.reset_player_hands()
+        self.reset_player_money()
+        self.reset_deck()
 
+    def reset_round(self):
+        self.rounds_played += 1
+        self.reset_player_hands()
+        self.reset_deck()
+
+    def reset_player_hands(self):
+        for player in self.players:
+            player.reset_hand()
+
+    def reset_player_money(self):
+        for player in self.players:
+            player.reset_money()
+
+    def reset_deck(self):
+        self.deck.reset()
     # =============================
     # Reference Methods
     # =============================
@@ -102,23 +124,31 @@ class TwentyOne(UtilityMethods, Messages):
         return all([ player.has_busted for player in self.players ])
 
     # =============================
-    # User Input Methods
+    # Predicate Methods
     # =============================
-    def ask_play_again(self):
-        self.get_play_status('play again')
+    def play_again(self):
+        return self.get_play_status('play again')
 
-    def ask_keep_playing(self):
-        self.get_play_status('keep playing')
+    def keep_playing(self):
+        if self.get_play_status('keep playing'):
+            return True
+        self.quit_early = True
+        return False
 
     def get_play_status(self, msg):
         while True:
             play = input(F'\nWould you like to {msg}? (y/n): ').casefold()
             if play in ('y', 'yes'):
-                return
+                return True
             if play in ('n', 'no'):
-                self.game_play = False
-                return
+                return False
             print('Incorrect response, please try again')
+
+    def is_human_playable(self):
+        return self.human_player().is_playable()
+
+    def human_not_playable(self):
+        return not self.is_human_playable()
 
     # =============================
     # Display Methods
@@ -160,6 +190,12 @@ class TwentyOne(UtilityMethods, Messages):
     def display_hands(self):
         for player in self.players:
             print(player,'\n')
+
+    def display_fund_status(self):
+        if self.human_player().is_too_rich():
+            print("Congrats, you won too much money!")
+        else:
+            print("Sorry, you have no more money, get more to play again!")
 
     # =============================
     # Display Helper Methods

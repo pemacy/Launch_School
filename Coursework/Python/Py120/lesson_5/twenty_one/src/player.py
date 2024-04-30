@@ -15,9 +15,12 @@ class Player(UtilityMethods):
     # ==========================
     # GamePlay Methods
     # ==========================
-    def reset(self):
+    def reset_hand(self):
         self.hand.clear()
         self.turn_complete = False
+
+    def reset_money(self):
+        self.money = 5
 
     def play_round(self, deck, gameplay):
         while True:
@@ -136,8 +139,14 @@ class Human(Player):
     # ==========================
     #  Predicate Methods
     # ==========================
+    def is_too_rich(self):
+        return self.money >= 10
+
+    def is_too_poor(self):
+        return self.money == 0
+
     def is_playable(self):
-        return self.money > 0 and self.money <= 10
+        return not self.is_too_poor() and not self.is_too_rich()
 
     # ==========================
     #  Display Methods
