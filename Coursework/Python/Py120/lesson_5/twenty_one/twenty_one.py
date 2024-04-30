@@ -36,15 +36,9 @@ class TwentyOne(UtilityMethods, Messages):
 
     def play_rounds(self):
         while self.is_human_playable():
-            self.clear_screen()
-            self.display_round_banner()
-            self.initial_deal()
-            self.display_hands()
-            self.enter_to_continue()
+            self.pre_round_actions()
             self.play_round()
-            self.determine_round_winner()
-            self.settle_bets()
-            self.display_round_results()
+            self.post_round_actions()
             if self.human_not_playable():
                 break
             if self.keep_playing():
@@ -56,6 +50,18 @@ class TwentyOne(UtilityMethods, Messages):
         for _ in range(2):
             for player in self.players:
                 player.hit(self.deck)
+
+    def pre_round_actions(self):
+        self.clear_screen()
+        self.display_round_banner()
+        self.initial_deal()
+        self.display_hands()
+        self.enter_to_continue()
+
+    def post_round_actions(self):
+        self.determine_round_winner()
+        self.settle_bets()
+        self.display_round_results()
 
     def play_round(self):
         for player in self.players:
